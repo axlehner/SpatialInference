@@ -2,7 +2,7 @@
 output: github_document
 ---
 
-<!-- README.md  is generated from README.Rmd. Please edit that file -->
+<!-- This brief doc/description is only for the github page. README.md is generated from README.Rmd. Please edit the latter file - rmarkdown::render('README.Rmd', output_format = 'github_document', output_file = 'README.md') -->
 <!-- SetUp process create_package("~/Documents/Synched/Uni/Work/2020/SpatialInference"), use_readme_rmd(), use_git() -->
 <!--  -->
 <!-- Get in Rcpp http://adv-r.had.co.nz/Rcpp.html#rcpp-package -->
