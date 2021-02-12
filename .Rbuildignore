@@ -1,3 +1,6 @@
 ^SpatialInference\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
+\.o$
+\.so$
+\.dll$
