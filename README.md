@@ -1,21 +1,47 @@
 
 <!-- This brief doc/description is only for the github page. README.md is generated from README.Rmd. Please edit the latter file - rmarkdown::render('README.Rmd', output_format = 'github_document', output_file = 'README.md') -->
-
 <!-- SetUp process create_package("~/Documents/Synched/Uni/Work/2020/SpatialInference"), use_readme_rmd(), use_git() -->
-
 <!--  -->
-
 <!-- Get in Rcpp http://adv-r.had.co.nz/Rcpp.html#rcpp-package -->
-
 <!-- Get in conley https://github.com/potterzot/vcovConley -->
 
 # SpatialInference
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
 The goal of SpatialInference is to …
+
+### Functions (actual and sheduled)
+
+-   grid\_identifier() \[for the FE\]
+-   put lon/lat (or the current CRS coord) as columns in df \[to control
+    for “smooth position in space”\]
+-   
+-   decluster()
+-   
+-   spatbag()
+-   spat\_did() \[boils down to spec of the term with W\]
+-   SpatFD from Martin73 \[again just figuring out the Wlagged vectors
+    and substract the lag from the y\]
+-   
+-   conley()
+-   conleySANDWICHfiona?
+-   conleyGMM?
+-   kelly()
+-   acreg()
+-   sphac\_strap()?
+-   kimsun11 (not implemented anywhere acc to KP17)
+-   Bester et al 16 fixed-b assymptot?
+-   
+-   block bootstraps? (conley19,…)
+-   
+-   robust Morans I
+-   
+-   center of gravity
+    (<https://twitter.com/undertheraedar/status/1285904073825366016/photo/1>)
+    \[from the quant geo textbook (arlinghaus?), using the ArcGIS
+    formula\]
 
 ## Installation
 
@@ -23,14 +49,14 @@ You can install the released version of SpatialInference from
 [CRAN](https://CRAN.R-project.org) with:
 
 ``` r
-install.packages("SpatialInference")
+#install.packages("SpatialInference")
 ```
 
 And the development version from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("axlehner/SpatialInference")
+#devtools::install_github("axlehner/SpatialInference")
 ```
 
 ## Example
@@ -64,4 +90,4 @@ You can also embed plots, for example:
 <img src="man/figures/README-pressure-1.png" width="100%" />
 
 In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub\!
+files, so they display on GitHub!

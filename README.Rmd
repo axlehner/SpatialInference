@@ -25,19 +25,46 @@ knitr::opts_chunk$set(
 
 The goal of SpatialInference is to ...
 
+### Functions (actual and sheduled)
+
+* grid_identifier() [for the FE]
+* put lon/lat (or the current CRS coord) as columns in df [to control for "smooth position in space"]
+*
+* decluster()
+*
+* spatbag()
+* spat_did() [boils down to spec of the term with W]
+* SpatFD from Martin73 [again just figuring out the Wlagged vectors and substract the lag from the y]
+*
+* conley()
+* conleySANDWICHfiona?
+* conleyGMM?
+* kelly()
+* acreg()
+* sphac_strap()?
+* kimsun11 (not implemented anywhere acc to KP17)
+* Bester et al 16 fixed-b assymptot?
+* 
+* block bootstraps? (conley19,...)
+*
+* robust Morans I
+*
+* center of gravity (https://twitter.com/undertheraedar/status/1285904073825366016/photo/1) [from the quant geo textbook (arlinghaus?), using the ArcGIS formula]
+
+
 ## Installation
 
 You can install the released version of SpatialInference from [CRAN](https://CRAN.R-project.org) with:
 
-``` r
-install.packages("SpatialInference")
+```{r}
+#install.packages("SpatialInference")
 ```
 
 And the development version from [GitHub](https://github.com/) with:
 
-``` r
+```{r}
 # install.packages("devtools")
-devtools::install_github("axlehner/SpatialInference")
+#devtools::install_github("axlehner/SpatialInference")
 ```
 ## Example
 
