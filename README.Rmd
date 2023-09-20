@@ -90,3 +90,12 @@ plot(pressure)
 ```
 
 In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!
+
+
+# Known Errors
+Fortran compiler on MaxOS:
+https://github.com/RubD/Giotto_site/issues/11
+
+worked without the last one: the pointer to the direction
+
+

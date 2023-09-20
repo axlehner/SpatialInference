@@ -23,9 +23,6 @@ conley_SE(
 \arguments{
 \item{balanced_pnl}{}
 }
-\value{
-
-}
 \description{
-This is the function by Darin Christensen molten into a package.
+This is the function containing the underlying C++ code by Darin Christensen molten into a package.
 }

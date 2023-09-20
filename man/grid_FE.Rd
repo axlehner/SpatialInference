@@ -9,9 +9,6 @@ grid_FE(df.sf, size, distance = F)
 \arguments{
 \item{distance}{}
 }
-\value{
-
-}
 \description{
 Title
 }

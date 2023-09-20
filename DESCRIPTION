@@ -1,5 +1,5 @@
 Package: SpatialInference
-Title: Spatial InfeRence: Tools to do Inference on Geo-Coded Data
+Title: Tools for Statistical Inference with Geo-Coded Data
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Alexander",
@@ -13,13 +13,15 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.2.3
 LinkingTo: 
     Rcpp,
     RcppArmadillo
 Imports: 
     Rcpp,
-    sf
+    sf,
+    data.table,
+    magrittr
 Suggests: 
     knitr,
     rmarkdown,

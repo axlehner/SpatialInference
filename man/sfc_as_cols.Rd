@@ -9,13 +9,6 @@ sfc_as_cols(x, names = c("x", "y"))
 \arguments{
 \item{names}{}
 }
-\value{
-
-}
 \description{
 code comes from the internet
-}
-\examples{
-
-
 }

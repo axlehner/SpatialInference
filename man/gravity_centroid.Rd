@@ -9,9 +9,6 @@ gravity_centroid(df.sf, weight = NA)
 \arguments{
 \item{weight}{}
 }
-\value{
-
-}
 \description{
 Center of Gravity
 }

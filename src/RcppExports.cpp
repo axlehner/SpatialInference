@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // DistMat
 arma::mat DistMat(arma::mat M, double cutoff, std::string kernel, std::string dist_fn);
 RcppExport SEXP _SpatialInference_DistMat(SEXP MSEXP, SEXP cutoffSEXP, SEXP kernelSEXP, SEXP dist_fnSEXP) {

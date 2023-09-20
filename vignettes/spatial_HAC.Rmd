@@ -3,7 +3,7 @@ title: "spatial_HAC"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{spatial_HAC}
-  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEngine{knitr::knitr}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(SpatialInference)
+print("Test")
 ```
 
 
