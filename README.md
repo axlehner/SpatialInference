@@ -10,52 +10,44 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of SpatialInference is to …
+Package containes helper functions to do inference with spatial data in
+R. Most importantly, the fast C++ implementation for Conley (spatial
+HAC) standard errors by Darin Christensen and a function to estimate the
+correlation range of regression residuals.
 
 ### Functions (actual and sheduled)
 
--   grid\_identifier() \[for the FE\]
--   put lon/lat (or the current CRS coord) as columns in df \[to control
-    for “smooth position in space”\]
--   
--   decluster()
--   
--   spatbag()
--   spat\_did() \[boils down to spec of the term with W\]
--   SpatFD from Martin73 \[again just figuring out the Wlagged vectors
-    and substract the lag from the y\]
--   
--   conley()
--   conleySANDWICHfiona?
--   conleyGMM?
--   kelly()
--   acreg()
--   sphac\_strap()?
--   kimsun11 (not implemented anywhere acc to KP17)
--   Bester et al 16 fixed-b assymptot?
--   
--   block bootstraps? (conley19,…)
--   
--   robust Morans I
--   
--   center of gravity
-    (<https://twitter.com/undertheraedar/status/1285904073825366016/photo/1>)
-    \[from the quant geo textbook (arlinghaus?), using the ArcGIS
-    formula\]
+<!-- * grid_identifier() [for the FE] -->
+<!-- * put lon/lat (or the current CRS coord) as columns in df [to control for "smooth position in space"] -->
+<!-- * -->
+<!-- * decluster() -->
+<!-- * -->
+<!-- * spatbag() -->
+<!-- * spat_did() [boils down to spec of the term with W] -->
+<!-- * SpatFD from Martin73 [again just figuring out the Wlagged vectors and substract the lag from the y] -->
+<!-- * -->
+<!-- * conley() -->
+<!-- * conleySANDWICHfiona? -->
+<!-- * conleyGMM? -->
+<!-- * kelly() -->
+<!-- * acreg() -->
+<!-- * sphac_strap()? -->
+<!-- * kimsun11 (not implemented anywhere acc to KP17) -->
+<!-- * Bester et al 16 fixed-b assymptot? -->
+<!-- *  -->
+<!-- * block bootstraps? (conley19,...) -->
+<!-- * -->
+<!-- * robust Morans I -->
+<!-- * -->
+<!-- * center of gravity (https://twitter.com/undertheraedar/status/1285904073825366016/photo/1) [from the quant geo textbook (arlinghaus?), using the ArcGIS formula] -->
 
 ## Installation
 
-You can install the released version of SpatialInference from
-[CRAN](https://CRAN.R-project.org) with:
+You can install the development version from
+[GitHub](https://github.com/) with:
 
 ``` r
-#install.packages("SpatialInference")
-```
-
-And the development version from [GitHub](https://github.com/) with:
-
-``` r
-# install.packages("devtools")
+#install.packages("devtools")
 #devtools::install_github("axlehner/SpatialInference")
 ```
 
@@ -85,9 +77,9 @@ summary(cars)
 You’ll still need to render `README.Rmd` regularly, to keep `README.md`
 up-to-date.
 
-You can also embed plots, for example:
+# Known Errors
 
-<img src="man/figures/README-pressure-1.png" width="100%" />
+Fortran compiler on MaxOS:
+<https://github.com/RubD/Giotto_site/issues/11>
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub!
+worked without the last one: the pointer to the direction
