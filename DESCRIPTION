@@ -5,11 +5,10 @@ Authors@R:
     person(given = "Alexander",
            family = "Lehner",
            role = c("aut", "cre"),
-           email = "alexander.lehner@unibo.it",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           email = "lehner@uchicago.edu",
+           comment = c(ORCID = "0000-0001-5885-5966"))
 Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
