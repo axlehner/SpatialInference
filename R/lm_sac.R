@@ -108,3 +108,53 @@ lm.sac <- function(formula.chr, data.sf, knn_number = 20, conley_cutoff = 5, cor
   return(obj.lm)
 
 }
+
+
+# Tidy functions
+
+# define tidy and glance methods
+# felm base works only on the point estimates and robust HC3, cluster fails - it spits the CIS
+tidy_custom.lm <- function(x, ...) {
+  data.frame(
+    #term = names(coef(x)),
+    term = names(x$coefficients),
+    estimate = unname(x$coefficients), # THE NAME OF THE VECTOR HERE DECIDES!!
+    # PARAMETERS REFIT NOT WORKING WITH POLY IN REG
+    #statistic = parameters::model_parameters(x, standardize = "refit")$Coefficient,
+    #statistic = rep(5, length(x$coefficients)),
+    std.error = sandwich::vcovHC(x, type = "HC1") %>% diag() %>% sqrt(),
+    #std.error = unname(sqrt(diag(x$robustvcv))),
+    #conf.low = sandwich::vcovCL(x, cluster = reformulate(x$spatial_FE)) %>% diag() %>% sqrt(),
+    #statistic = sandwich::vcovCL(x, cluster = ~SubDistrict) %>% diag() %>% sqrt(),
+    #conf.high = vcovCL(x, cluster = ~segment10) %>% diag() %>% sqrt()
+    conf.high = x$conley_SE
+  )
+}
+
+# extra lines works though in the glance
+glance_custom.lm <- function(x, ...) {
+  # just compute a weightsmatrix every time (bc of diff SSizes and subsets) ?
+  data.frame(
+    #"Mean_SD" = stringr::str_c(round(mean(x$model[,1]), 3), " [", round(sd(x$model[,1]), 3), "]"), #na.rm should not be necessary since lm removed NAs
+    "Model" = "Custom",
+    "y_mean" = mean(x$model[,1]),
+    "y_SD"   = sd(x$model[,1]),
+    "nobs" = stats::nobs(x),
+    # here we need an if condition to use specific W_matrices based on distance subsets
+    # PRLY BETTER TO CREATE THEM ON THE FLY?!
+    "Moran_y" =     x$Moran_response,
+    "Moran_resid" = x$Moran_lmresid,
+    # issue when correlog is deactivated in lmsac regression? (else condition with NA way out?)
+    "Range_resid" = x$correlog.range_resid,
+    "Range_y" =  x$correlog.range_response
+  )
+}
+
+# gof mapping for modelsummary printing
+gm.param <- list(
+  list("raw" = "nobs", "clean" = "Observations", "fmt" = 0),
+  list("raw" = "Moran_y", "clean" = "Moran's I [y]", "fmt" = 3),
+  list("raw" = "Moran_resid", "clean" = "Moran's I [resid]", "fmt" = 3),
+  list("raw" = "y_mean", "clean" = "Mean [y]", "fmt" = 3),
+  list("raw" = "y_SD", "clean" = "Std.Dev. [y]", "fmt" = 3)
+)
