@@ -53,7 +53,7 @@ extract.corr.range <- function(input) {
     crossing_index <- which(series[-length(series)] > 0 & series[-1] <= 0)[1] # Find the indices where the sign of the series changes
     before <- covgm$dist[crossing_index]
     after <- covgm$dist[crossing_index + 1]
-    (after+before)/2 / 1e3
+    estim_range <- (after+before)/2 / 1e3
   }
 
   return(estim_range)
