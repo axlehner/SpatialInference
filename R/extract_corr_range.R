@@ -21,8 +21,8 @@ extract.corr.range <- function(input) {
   # TODO: with very long range correlation, the gamma never gets below 0, thus the error flag goes off, thinking it was a variogram - need to be more defensive on that
   if(inherits(input, "correlog")) input$gamma <- -1 # just add a negative gamma value to the corr to avoid a warning (it is made up bc the corr only has correlation as an attribute)
   stopifnot(
-    "Input has to be a correlogram (ncf) or a covariogram (gstat)." = inherits(input, c("correlog", "gstatVariogram")),
-    "Did you input a variogram? Please estimate a covariogram." = !(inherits(input, "gstatVariogram") & (min(input$gamma) > 0))
+    "Input has to be a correlogram (ncf) or a covariogram (gstat)." = inherits(input, c("correlog", "gstatVariogram"))#,
+    #"Did you input a variogram? Please estimate a covariogram." = !(inherits(input, "gstatVariogram") & (min(input$gamma) > 0))
   )
   # if(inherits(input, "gstatVariogram") & (min(input$gamma) > 0))
   #   stop("Did you input a variogram? Please estimate a covariogram.")
