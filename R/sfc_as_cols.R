@@ -15,6 +15,7 @@
 #'
 #'
 sfc_as_cols <- function(x, names = c("x","y")) {
+  # TODO: could make the 4326 lonlat conversion and naming inside the function for convenience
   stopifnot(inherits(x,"sf") | inherits(x,"sfc") && inherits(sf::st_geometry(x),"sfc_POINT"))
   ret <- do.call(rbind,sf::st_geometry(x))
   ret <- tibble::as_tibble(ret)
