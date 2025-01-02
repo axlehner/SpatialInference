@@ -42,11 +42,18 @@ extract.corr.range <- function(input) {
   }
   if (inherits(input, "gstatVariogram")) {
     # same logic here with the covariogram estimate
-    holdout <- input$gamma |> round(5) |> floor() |> diff()
-    pos <- holdout[abs(holdout) > 0][1] |> names() |> as.numeric()
-    before <- input$dist[which(holdout != 0)[1]] # this is the one before the crossing because the diff cut the holdout vector short by 1 element
-    after <- input$dist[which(holdout != 0)[1]+1]
-    estim_range <- (after+before)/2 / 1e3
+    # CHANGE
+    # holdout <- input$gamma |> round(5) |> floor() |> diff()
+    # pos <- holdout[abs(holdout) > 0][1] |> names() |> as.numeric()
+    # before <- input$dist[which(holdout != 0)[1]] # this is the one before the crossing because the diff cut the holdout vector short by 1 element
+    # after <- input$dist[which(holdout != 0)[1]+1]
+    # estim_range <- (after+before)/2 / 1e3
+    # CHANGED BECAUSE THE floor() acts up when gamma above 1 (not possible for correlog)
+    series <- covgm$gamma
+    crossing_index <- which(series[-length(series)] > 0 & series[-1] <= 0)[1] # Find the indices where the sign of the series changes
+    before <- covgm$dist[crossing_index]
+    after <- covgm$dist[crossing_index + 1]
+    (after+before)/2 / 1e3
   }
 
   return(estim_range)
