@@ -49,10 +49,10 @@ extract.corr.range <- function(input) {
     # after <- input$dist[which(holdout != 0)[1]+1]
     # estim_range <- (after+before)/2 / 1e3
     # CHANGED BECAUSE THE floor() acts up when gamma above 1 (not possible for correlog)
-    series <- covgm$gamma
+    series <- input$gamma
     crossing_index <- which(series[-length(series)] > 0 & series[-1] <= 0)[1] # Find the indices where the sign of the series changes
-    before <- covgm$dist[crossing_index]
-    after <- covgm$dist[crossing_index + 1]
+    before <- input$dist[crossing_index]
+    after <- input$dist[crossing_index + 1]
     estim_range <- (after+before)/2 / 1e3
   }
 
