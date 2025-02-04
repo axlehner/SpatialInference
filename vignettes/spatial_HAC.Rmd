@@ -1,5 +1,5 @@
 ---
-title: "spatial_HAC"
+title: "Estimate bandwidths and compute Conley errors"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{spatial_HAC}
@@ -15,7 +15,12 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-print("Test")
+library(SpatialInference)
+library(sf)
+data("US_counties_centroids")
 ```
 
+```{r}
+plot(US_counties_centroids)
+```
 
