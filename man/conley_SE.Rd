@@ -2,7 +2,7 @@
 % Please edit documentation in R/conley_VCV.R
 \name{conley_SE}
 \alias{conley_SE}
-\title{Conley Spatial Variance-Covariances for Fixed Effects models fit with lfe}
+\title{Conley Spatial Variance-Covariances using lfe}
 \usage{
 conley_SE(
   reg,
@@ -24,5 +24,6 @@ conley_SE(
 \item{balanced_pnl}{}
 }
 \description{
-This is the function containing the underlying C++ code by Darin Christensen molten into a package.
+This is the function containing the underlying C++ code by Darin Christensen.
+Regression model input has to be from lfe::felm().
 }

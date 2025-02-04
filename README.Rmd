@@ -25,6 +25,11 @@ knitr::opts_chunk$set(
 
 Package containes helper functions to do inference with spatial data in R. Most importantly, the fast C++ implementation for Conley (spatial HAC) standard errors by Darin Christensen and a function to estimate the correlation range of regression residuals.
 
+## Some note on pkg development
+
+- for this readme on Github, edit the .Rmd and then use `rmarkdown::render()`
+- after you edited or included a function, just use the cmd+shift+B short cut to install an rebuild the package (rinse and repeat)
+
 ### Functions (actual and sheduled)
 
 <!-- * grid_identifier() [for the FE] -->
