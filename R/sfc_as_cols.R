@@ -1,9 +1,11 @@
 
 
 
-#' Coordinates as columns in dataframe
+#' Coordinates as columns into a data frame
 #'
-#' code comes from the internet
+#' This is based on the `sfc_as_cols` function which has been flying around on Stackoverflow and other websites for years.
+#' Since there is no package implementation so far, it has been brought into this package.
+#' The function `sf::st_coordinates()` achieves something very similar.
 #'
 #' @param x
 #' @param names
@@ -14,7 +16,7 @@
 #' @examples
 #'
 #'
-sfc_as_cols <- function(x, names = c("x","y")) {
+coords_as_columns <- function(x, names = c("x","y")) {
   # TODO: could make the 4326 lonlat conversion and naming inside the function for convenience
   stopifnot(inherits(x,"sf") | inherits(x,"sfc") && inherits(sf::st_geometry(x),"sfc_POINT"))
   ret <- do.call(rbind,sf::st_geometry(x))

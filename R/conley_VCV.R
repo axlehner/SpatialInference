@@ -2,9 +2,10 @@
 #' @export
 data.table::`:=`
 
-#' Conley Spatial Variance-Covariances for Fixed Effects models fit with lfe
+#' Conley Spatial Variance-Covariances using lfe
 #'
-#' This is the function containing the underlying C++ code by Darin Christensen molten into a package.
+#' This is the function containing the underlying C++ code by Darin Christensen.
+#' Regression model input has to be from lfe::felm().
 #'
 #' @param reg
 #' @param unit
@@ -202,4 +203,30 @@ iterateObs <- function(dt, Xvars, d, k,
   }
 
   XeeXhs
+}
+
+
+#' Compute Conley Standard Error
+#'
+#' Convenience function which nests `conley_SE` and prints only the standard error.
+#' The same parameters can be used here.
+#'
+#' @param lfeobj
+#' @param cutoff
+#' @param kernel_choice
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+
+
+compute_conley_lfe <- function(lfeobj, cutoff, kernel_choice = "bartlett", ...) {
+  regfe_conley <- conley_SE(reg = lfeobj, unit = "unit", time = "year",
+                            lat = "lat", lon = "lon",
+                            kernel = kernel_choice, dist_fn = "Haversine",
+                            dist_cutoff = cutoff, ...)
+  conley <- sapply(regfe_conley, function(x) diag(sqrt(x))) %>% round(5)
+  return(conley[[2]])
 }

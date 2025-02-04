@@ -15,7 +15,7 @@ magrittr::`%>%`
 #' @examples
 #'
 #'
-extract.corr.range <- function(input, returnzeroifNA = FALSE) {
+extract_corr_range <- function(input, returnzeroifNA = FALSE) {
   # TODO: think about projections and the input widths here
   # later we need an optimizer that reduces the width(covgm)/increment(ncfcorrelog) and picks the first crossing with 0
   # TODO: with very long range correlation, the gamma never gets below 0, thus the error flag goes off, thinking it was a variogram - need to be more defensive on that
