@@ -6,6 +6,8 @@
 // Enable C++11 via this plugin (Rcpp 0.10.3 or later)
 // [[Rcpp::plugins(cpp11)]]
 
+// Kernel definitions enter 3 separate times in this cpp files
+
 using namespace Rcpp;
 using namespace arma;
 
@@ -88,10 +90,17 @@ arma::mat DistMat(arma::mat M, double cutoff,
       int v = d <= cutoff;
       // if(v == 0) continue;
 
-      if(kernel != "bartlett") {
-        dmat(i,j) = dmat(j,i) = v;
-      } else {
-        dmat(i,j) = dmat(j,i) = (1 - d / cutoff) * v;
+      // if(kernel != "bartlett") {
+      //     dmat(i,j) = dmat(j,i) = v;
+      // } else {
+      //     dmat(i,j) = dmat(j,i) = (1 - d / cutoff) * v;
+      // }
+      if (kernel != "bartlett" && kernel != "epanechnikov") {
+        dmat(i, j) = dmat(j, i) = v;
+      } else if (kernel == "bartlett") {
+        dmat(i, j) = dmat(j, i) = (1 - d / cutoff) * v;
+      } else if (kernel == "epanechnikov") {
+        dmat(i, j) = dmat(j, i) = (1 - std::pow(d / cutoff, 2)) * v;
       }
     }
   }
@@ -139,10 +148,17 @@ arma::mat XeeXhC(arma::mat M, double cutoff,
       int v = d <= cutoff;
       // if(v == 0) continue;
 
-      if(kernel != "bartlett") {
-        dmat(i,j) = dmat(j,i) = v;
-      } else {
-        dmat(i,j) = dmat(j,i) = (1 - d / cutoff) * v;
+      // if(kernel != "bartlett") {
+      //     dmat(i,j) = dmat(j,i) = v;
+      // } else {
+      //     dmat(i,j) = dmat(j,i) = (1 - d / cutoff) * v;
+      // }
+      if (kernel != "bartlett" && kernel != "epanechnikov") {
+        dmat(i, j) = dmat(j, i) = v;
+      } else if (kernel == "bartlett") {
+        dmat(i, j) = dmat(j, i) = (1 - d / cutoff) * v;
+      } else if (kernel == "epanechnikov") {
+        dmat(i, j) = dmat(j, i) = (1 - std::pow(d / cutoff, 2)) * v;
       }
     }
   }
@@ -241,10 +257,17 @@ arma::mat XeeXhC_Lg(arma::mat M, double cutoff,
 
       // Kernel:
       int v = d <= cutoff;
-      if(kernel != "bartlett") {
+      // if(kernel != "bartlett") {
+      //     d_row[j] = v;
+      // } else {
+      //     d_row[j] = (1 - d / cutoff) * v;
+      // }
+      if (kernel != "bartlett" && kernel != "epanechnikov") {
         d_row[j] = v;
-      } else {
+      } else if (kernel == "bartlett") {
         d_row[j] = (1 - d / cutoff) * v;
+      } else if (kernel == "epanechnikov") {
+        d_row[j] = (1 - std::pow(d / cutoff, 2)) * v;
       }
     }
 
