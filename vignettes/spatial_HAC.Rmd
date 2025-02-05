@@ -148,6 +148,11 @@ Things could also be computed on a lattice - Alex (G), that's what could be used
 US_grid <- st_make_grid(US_counties_centroids, cellsize = 70000, square = T) %>% st_sf()
 US_grid <- st_centroid(US_grid)
 
+# add lonlat since the conley only works with that for now (does not recognize sf objects) 
+US_grid <- bind_cols(US_grid, sfc_as_cols(st_transform(US_grid, 4326), names = c("lon", "lat")))
+US_grid$year <- "1" # fake year FE to make conley lfe work
+US_grid$unit <- "unit" # for FE
+
 ggplot(US_grid) + geom_sf(size = .1) + theme_bw()
 ```
 
