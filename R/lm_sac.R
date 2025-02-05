@@ -18,7 +18,9 @@
 #' @examples
 #'
 #'
-lm.sac <- function(formula.chr, data.sf, knn_number = 20, conley_cutoff = 5, correlograms = F, ...) {
+lm_sac <- function(formula.chr, data.sf, knn_number = 20,
+                   conley_cutoff = 5, conley_kernel = "bartlett",
+                   correlograms = F, ...) {
   # the goal is to spit out ONE single lm object that gets then assign also the custom class
   # 1 first we run the formula as an felm with lat lon, this way we can keep unique id
 
@@ -86,16 +88,17 @@ lm.sac <- function(formula.chr, data.sf, knn_number = 20, conley_cutoff = 5, cor
   cutoff <- conley_cutoff
   conley.1 <- SpatialInference::conley_SE(reg = obj.felm,
                                           unit = the.spatial.FE, time = "year",
-                                          kernel = "bartlett", dist_fn = "Haversine",
+                                          kernel = conley_kernel, dist_fn = "Haversine",
                                           lat = "lat", lon =  "lon", dist_cutoff = cutoff)
   # here we make the stunt to get a vector of the length of n(coef), including the intercept since lm() always displays it
   obj.lm$conley_SE <- c(0, lapply(conley.1, function(x) diag(sqrt(x)))$Spatial[[1]], rep(0, length(obj.lm$coefficients)-2))
+
 
   if (correlograms == T) {
     cutoff <- obj.lm$correlog.range_resid
     conley.2 <- SpatialInference::conley_SE(reg = obj.felm,
                                             unit = the.spatial.FE, time = "year",
-                                            kernel = "bartlett", dist_fn = "Haversine",
+                                            kernel = conley_kernel, dist_fn = "Haversine",
                                             lat = "lat", lon =  "lon", dist_cutoff = cutoff)
     # here we make the stunt to get a vector of the length of n(coef), including the intercept since lm() always displays it
     obj.lm$conley_SE_flex <- c(0, lapply(conley.2, function(x) diag(sqrt(x)))$Spatial[[1]], rep(0, length(obj.lm$coefficients)-2))
@@ -127,7 +130,8 @@ tidy_custom.lm <- function(x, ...) {
     #conf.low = sandwich::vcovCL(x, cluster = reformulate(x$spatial_FE)) %>% diag() %>% sqrt(),
     #statistic = sandwich::vcovCL(x, cluster = ~SubDistrict) %>% diag() %>% sqrt(),
     #conf.high = vcovCL(x, cluster = ~segment10) %>% diag() %>% sqrt()
-    conf.high = x$conley_SE
+    conf.high = x$conley_SE,
+    conley = x$conley_SE
   )
 }
 
