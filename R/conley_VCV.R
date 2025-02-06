@@ -227,6 +227,11 @@ compute_conley_lfe <- function(lfeobj, cutoff, kernel_choice = "bartlett", ...) 
                             lat = "lat", lon = "lon",
                             kernel = kernel_choice, dist_fn = "Haversine",
                             dist_cutoff = cutoff, ...)
-  conley <- sapply(regfe_conley, function(x) diag(sqrt(x))) %>% round(5)
-  return(conley[[2]])
+  conley <- sapply(regfe_conley, function(x) diag(sqrt(x))) |> round(5)
+  if (length(conley) == 3) { # has length 3 if only one regressand was used
+    return(conley[[2]])
+  } else { # if there was more than one regressand, we are interested in the conley SE of the first one
+    return(conley[1,2])
+  }
+
 }
