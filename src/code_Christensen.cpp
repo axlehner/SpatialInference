@@ -115,7 +115,7 @@ arma::mat DistMat(arma::mat M, double cutoff,
         } else {
           dmat(i, j) = dmat(j, i) = 0;
         }
-      } else {
+      } else { // this is uniform
         dmat(i, j) = dmat(j, i) = v;
       }
     }
@@ -169,12 +169,35 @@ arma::mat XeeXhC(arma::mat M, double cutoff,
       // } else {
       //     dmat(i,j) = dmat(j,i) = (1 - d / cutoff) * v;
       // }
-      if (kernel != "bartlett" && kernel != "epanechnikov") {
-        dmat(i, j) = dmat(j, i) = v;
-      } else if (kernel == "bartlett") {
+      // if (kernel != "bartlett" && kernel != "epanechnikov") {
+      //   dmat(i, j) = dmat(j, i) = v;
+      // } else if (kernel == "bartlett") {
+      //   dmat(i, j) = dmat(j, i) = (1 - d / cutoff) * v;
+      // } else if (kernel == "epanechnikov") {
+      //   dmat(i, j) = dmat(j, i) = (1 - std::pow(d / cutoff, 2)) * v;
+      // }
+      if (kernel == "bartlett") {
         dmat(i, j) = dmat(j, i) = (1 - d / cutoff) * v;
       } else if (kernel == "epanechnikov") {
-        dmat(i, j) = dmat(j, i) = (1 - std::pow(d / cutoff, 2)) * v;
+        dmat(i, j) = dmat(j, i) = (1 - pow(d / cutoff, 2)) * v;
+      } else if (kernel == "gaussian") {
+        dmat(i, j) = dmat(j, i) = exp(-0.5 * pow(d / cutoff, 2)) * v;
+      } else if (kernel == "parzen") {
+        if (d <= 0.5 * cutoff) {
+          dmat(i, j) = dmat(j, i) = (1 - 6 * pow(d / cutoff, 2) + 6 * pow(d / cutoff, 3)) * v;
+        } else if (d <= cutoff) {
+          dmat(i, j) = dmat(j, i) = 2 * pow(1 - d / cutoff, 3) * v;
+        } else {
+          dmat(i, j) = dmat(j, i) = 0;
+        }
+      } else if (kernel == "biweight") {
+        if (d <= cutoff) {
+          dmat(i, j) = dmat(j, i) = (15.0 / 16.0) * pow(1 - pow(d / cutoff, 2), 2) * v;
+        } else {
+          dmat(i, j) = dmat(j, i) = 0;
+        }
+      } else { // this is uniform
+        dmat(i, j) = dmat(j, i) = v;
       }
     }
   }
@@ -278,12 +301,37 @@ arma::mat XeeXhC_Lg(arma::mat M, double cutoff,
       // } else {
       //     d_row[j] = (1 - d / cutoff) * v;
       // }
-      if (kernel != "bartlett" && kernel != "epanechnikov") {
-        d_row[j] = v;
-      } else if (kernel == "bartlett") {
+      // if (kernel != "bartlett" && kernel != "epanechnikov") {
+      //   d_row[j] = v;
+      // } else if (kernel == "bartlett") {
+      //   d_row[j] = (1 - d / cutoff) * v;
+      // } else if (kernel == "epanechnikov") {
+      //   d_row[j] = (1 - std::pow(d / cutoff, 2)) * v;
+      // }
+
+      // this is adapted in analogy with the new kernels from above in DistMat and XeeXhC
+      if (kernel == "bartlett") {
         d_row[j] = (1 - d / cutoff) * v;
       } else if (kernel == "epanechnikov") {
         d_row[j] = (1 - std::pow(d / cutoff, 2)) * v;
+      } else if (kernel == "gaussian") {
+        d_row[j] = exp(-0.5 * pow(d / cutoff, 2)) * v;
+      } else if (kernel == "parzen") {
+        if (d <= 0.5 * cutoff) {
+          d_row[j] = (1 - 6 * pow(d / cutoff, 2) + 6 * pow(d / cutoff, 3)) * v;
+        } else if (d <= cutoff) {
+          d_row[j] = 2 * pow(1 - d / cutoff, 3) * v;
+        } else {
+          d_row[j] = 0;
+        }
+      } else if (kernel == "biweight") {
+        if (d <= cutoff) {
+          d_row[j] = (15.0 / 16.0) * pow(1 - pow(d / cutoff, 2), 2) * v;
+        } else {
+          d_row[j] = 0;
+        }
+      } else { // this is uniform
+        d_row[j] = v;
       }
     }
 
