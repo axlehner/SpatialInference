@@ -111,7 +111,7 @@ arma::mat DistMat(arma::mat M, double cutoff,
         }
       } else if (kernel == "biweight") {
         if (d <= cutoff) {
-          dmat(i, j) = dmat(j, i) = (15.0 / 16.0) * pow(1 - pow(d / cutoff, 2), 2) * v;
+          dmat(i, j) = dmat(j, i) = pow(1 - pow(d / cutoff, 2), 2) * v;
         } else {
           dmat(i, j) = dmat(j, i) = 0;
         }
@@ -192,7 +192,7 @@ arma::mat XeeXhC(arma::mat M, double cutoff,
         }
       } else if (kernel == "biweight") {
         if (d <= cutoff) {
-          dmat(i, j) = dmat(j, i) = (15.0 / 16.0) * pow(1 - pow(d / cutoff, 2), 2) * v;
+          dmat(i, j) = dmat(j, i) = pow(1 - pow(d / cutoff, 2), 2) * v;
         } else {
           dmat(i, j) = dmat(j, i) = 0;
         }
@@ -326,7 +326,7 @@ arma::mat XeeXhC_Lg(arma::mat M, double cutoff,
         }
       } else if (kernel == "biweight") {
         if (d <= cutoff) {
-          d_row[j] = (15.0 / 16.0) * pow(1 - pow(d / cutoff, 2), 2) * v;
+          d_row[j] = pow(1 - pow(d / cutoff, 2), 2) * v;
         } else {
           d_row[j] = 0;
         }
