@@ -2,7 +2,7 @@
 % Please edit documentation in R/conley_VCV.R
 \name{iterateObs}
 \alias{iterateObs}
-\title{Iterate observations}
+\title{Iterate over observations for spatial or serial correlation}
 \usage{
 iterateObs(
   dt,
@@ -18,6 +18,34 @@ iterateObs(
   dist_fn
 )
 }
-\description{
-Iterate observations
+\arguments{
+\item{dt}{A \code{data.table} with the regression data.}
+
+\item{Xvars}{Character vector of regressor names.}
+
+\item{d}{Pre-computed distance matrix (used when \code{balanced_pnl = TRUE}).}
+
+\item{k}{Integer, number of regressors.}
+
+\item{sub_index}{The time period or unit index to subset on.}
+
+\item{type}{Character, either \code{"spatial"} or \code{"serial"}.}
+
+\item{cutoff}{Numeric, the distance or lag cutoff.}
+
+\item{balanced_pnl}{Logical, whether the panel is balanced.}
+
+\item{verbose}{Logical, whether to print progress.}
+
+\item{kernel}{Character, the kernel function name.}
+
+\item{dist_fn}{Character, the distance function name.}
 }
+\value{
+A k x k numeric matrix representing the X'ee'X contribution.
+}
+\description{
+Internal helper function called by \code{\link[=conley_SE]{conley_SE()}} to compute the X'ee'X
+component for a single time period (spatial) or unit (serial).
+}
+\keyword{internal}

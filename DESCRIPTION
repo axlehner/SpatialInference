@@ -1,7 +1,7 @@
 Package: SpatialInference
 Title: Tools for Statistical Inference with Geo-Coded Data
-Version: 0.0.0.9000
-Authors@R: 
+Version: 0.1.0
+Authors@R:
     person(given = "Alexander",
            family = "Lehner",
            role = c("aut", "cre"),
@@ -9,21 +9,36 @@ Authors@R:
            comment = c(ORCID = "0000-0001-5885-5966"))
 Description: What the package does (one paragraph).
 License: GPL (>= 3)
+URL: https://github.com/axlehner/SpatialInference
+BugReports: https://github.com/axlehner/SpatialInference/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-LinkingTo: 
+LinkingTo:
     Rcpp,
     RcppArmadillo
-Imports: 
+Imports:
     Rcpp,
     sf,
     data.table,
-    magrittr
-Suggests: 
+    magrittr,
+    stats,
+    tibble
+Suggests:
+    lfe,
+    fixest,
+    dplyr,
+    stringr,
+    spdep,
+    ncf,
+    gstat,
+    sandwich,
+    ggplot2,
+    modelsummary,
     knitr,
     rmarkdown,
     geosphere,
-    testthat
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
 VignetteBuilder: knitr

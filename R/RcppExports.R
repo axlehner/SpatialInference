@@ -5,74 +5,81 @@
 #'
 #' @export
 #'
-#' @param M a matrix of locations
-#' @param cutoff the distance for cutoff
+#' @param M a matrix of locations (n x 2, latitude and longitude)
+#' @param cutoff the distance cutoff (bandwidth) in km
 #' @param kernel (string) kernel function (default is bartlett-triangular)
 #' @param dist_fn (string) distance function (Haversine)
 #'
+#' @return A symmetric n x n matrix of kernel weights with 1s on the diagonal.
 DistMat <- function(M, cutoff, kernel = "bartlett", dist_fn = "Haversine") {
     .Call(`_SpatialInference_DistMat`, M, cutoff, kernel, dist_fn)
 }
 
-#' Calculate Correlation Matrix
+#' Spatial Variance Component (X'ee'X)
 #'
 #' @export
 #'
-#' @param M matrix of locations
-#' @param cutoff the distance for cutoff
-#' @param X model matrix
-#' @param e vector of residuals
+#' @param M matrix of locations (n x 2, latitude and longitude)
+#' @param cutoff the distance cutoff (bandwidth) in km
+#' @param X model matrix (n x k)
+#' @param e vector of residuals (length n)
 #' @param n1 number of observations
 #' @param k number of regressors
 #' @param kernel (string) kernel function (default is bartlett-triangular)
 #' @param dist_fn (string) distance function (Haversine)
 #'
+#' @return A k x k matrix representing the spatial X'ee'X component.
 XeeXhC <- function(M, cutoff, X, e, n1, k, kernel = "bartlett", dist_fn = "Haversine") {
     .Call(`_SpatialInference_XeeXhC`, M, cutoff, X, e, n1, k, kernel, dist_fn)
 }
 
-#' Calculate Correlation Matrix for Balanced Panel
+#' Spatial Variance Component for Balanced Panel
 #'
 #' @export
 #'
-#' @param dmat distance matrix
-#' @param X model matrix
-#' @param e vector of residuals
+#' @param dmat pre-computed distance matrix (n x n)
+#' @param X model matrix (n x k)
+#' @param e vector of residuals (length n)
 #' @param n1 number of observations
 #' @param k number of regressors
 #'
+#' @return A k x k matrix representing the spatial X'ee'X component.
 Bal_XeeXhC <- function(dmat, X, e, n1, k) {
     .Call(`_SpatialInference_Bal_XeeXhC`, dmat, X, e, n1, k)
 }
 
-#' Calculate Correlation Matrix for Large Model (slower, but avoids dist-matrix in memory)
+#' Spatial Variance Component for Large Datasets
+#'
+#' Memory-efficient variant that avoids constructing the full n x n distance matrix.
 #'
 #' @export
 #'
-#' @param M matrix of locations
-#' @param cutoff the distance for cutoff
-#' @param X model matrix
-#' @param e vector of residuals
+#' @param M matrix of locations (n x 2, latitude and longitude)
+#' @param cutoff the distance cutoff (bandwidth) in km
+#' @param X model matrix (n x k)
+#' @param e vector of residuals (length n)
 #' @param n1 number of observations
 #' @param k number of regressors
 #' @param kernel (string) kernel function (default is bartlett-triangular)
 #' @param dist_fn (string) distance function (Haversine)
 #'
+#' @return A k x k matrix representing the spatial X'ee'X component.
 XeeXhC_Lg <- function(M, cutoff, X, e, n1, k, kernel = "bartlett", dist_fn = "Haversine") {
     .Call(`_SpatialInference_XeeXhC_Lg`, M, cutoff, X, e, n1, k, kernel, dist_fn)
 }
 
-#' Calculate Correlation Matrix (time-dim)
+#' Temporal Variance Component (Time Dimension)
 #'
 #' @export
 #'
-#' @param times vector containing the different times
-#' @param cutoff the distance for cutoff
-#' @param X model matrix
-#' @param e vector of residuals
+#' @param times numeric vector of time period identifiers
+#' @param cutoff the lag cutoff (number of time periods)
+#' @param X model matrix (n x k)
+#' @param e vector of residuals (length n)
 #' @param n1 number of observations
 #' @param k number of regressors
 #'
+#' @return A k x k matrix representing the temporal X'ee'X component.
 TimeDist <- function(times, cutoff, X, e, n1, k) {
     .Call(`_SpatialInference_TimeDist`, times, cutoff, X, e, n1, k)
 }

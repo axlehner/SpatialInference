@@ -2,7 +2,7 @@
 % Please edit documentation in R/range_helpers.R
 \name{inverseu_plot_conleyrange}
 \alias{inverseu_plot_conleyrange}
-\title{Title}
+\title{Inverse-U Plot of Conley Standard Errors vs. Cutoff Distance}
 \usage{
 inverseu_plot_conleyrange(
   df.input,
@@ -15,8 +15,49 @@ inverseu_plot_conleyrange(
 )
 }
 \arguments{
-\item{...}{}
+\item{df.input}{An \code{sf} data frame containing the regression variables
+and columns \code{lat}, \code{lon}, \code{unit}, \code{year}.}
+
+\item{cutoffrange}{Numeric vector of cutoff distances (in km) to evaluate.}
+
+\item{kernel_choice_conley}{Character string specifying the kernel function.
+Default is \code{"epanechnikov"}. See \code{\link[=conley_SE]{conley_SE()}} for options.}
+
+\item{depvar}{Character string naming the dependent variable column.
+Default is \code{"noise1"}.}
+
+\item{indepvar}{Character string naming the independent variable column.
+Default is \code{"noise2"}.}
+
+\item{range_add}{Logical. If \code{TRUE}, overlays the covariogram-estimated
+correlation range as a vertical red line. Default is \code{FALSE}.}
+
+\item{...}{Additional arguments (currently unused).}
+}
+\value{
+A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object showing Conley SE (y-axis) against
+cutoff distance (x-axis), with the HC1 standard error as a grey
+dashed horizontal reference line.
 }
 \description{
-Title
+Visualizes the relationship between the spatial bandwidth (cutoff distance)
+and the resulting Conley standard error. This typically reveals an
+inverse-U shaped relationship, helping to identify the appropriate bandwidth
+for spatial HAC estimation.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+if (requireNamespace("lfe", quietly = TRUE) &&
+    requireNamespace("fixest", quietly = TRUE) &&
+    requireNamespace("ggplot2", quietly = TRUE)) {
+  inverseu_plot_conleyrange(US_counties_centroids,
+                            cutoffrange = seq(100, 1000, by = 200))
+}
+}
+}
+\references{
+Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+\emph{Journal of Econometrics}, 92(1), 1--45.
+\doi{10.1016/S0304-4076(98)00084-0}
 }

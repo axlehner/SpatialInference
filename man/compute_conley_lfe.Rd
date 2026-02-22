@@ -2,14 +2,43 @@
 % Please edit documentation in R/conley_VCV.R
 \name{compute_conley_lfe}
 \alias{compute_conley_lfe}
-\title{Compute Conley Standard Error}
+\title{Compute Conley Standard Error for a Single Coefficient}
 \usage{
 compute_conley_lfe(lfeobj, cutoff, kernel_choice = "bartlett", ...)
 }
 \arguments{
-\item{...}{}
+\item{lfeobj}{A regression object of class \code{"felm"} from \code{\link[lfe:felm]{lfe::felm()}}.
+Must be estimated with \code{keepCX = TRUE} and cluster variables
+\code{lat + lon}.}
+
+\item{cutoff}{Numeric. The spatial bandwidth (cutoff distance in km).}
+
+\item{kernel_choice}{Character string specifying the kernel function.
+Default is \code{"bartlett"}. See \code{\link[=conley_SE]{conley_SE()}} for available kernels.}
+
+\item{...}{Additional arguments passed to \code{\link[=conley_SE]{conley_SE()}}.}
+}
+\value{
+A single numeric value: the spatial Conley standard error for the
+first (or only) regressor.
 }
 \description{
-Convenience function which nests \code{conley_SE} and prints only the standard error.
-The same parameters can be used here.
+Convenience wrapper around \code{\link[=conley_SE]{conley_SE()}} that returns only the spatial
+Conley standard error for the first regressor. Useful for quick extraction
+of Conley SEs in scripting contexts.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+if (requireNamespace("lfe", quietly = TRUE)) {
+  reg <- lfe::felm(noise1 ~ noise2 | unit + year | 0 | lat + lon,
+                    data = US_counties_centroids, keepCX = TRUE)
+  compute_conley_lfe(reg, cutoff = 500)
+}
+}
+}
+\references{
+Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+\emph{Journal of Econometrics}, 92(1), 1--45.
+\doi{10.1016/S0304-4076(98)00084-0}
 }

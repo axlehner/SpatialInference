@@ -7,13 +7,16 @@
 DistMat(M, cutoff, kernel = "bartlett", dist_fn = "Haversine")
 }
 \arguments{
-\item{M}{a matrix of locations}
+\item{M}{a matrix of locations (n x 2, latitude and longitude)}
 
-\item{cutoff}{the distance for cutoff}
+\item{cutoff}{the distance cutoff (bandwidth) in km}
 
 \item{kernel}{(string) kernel function (default is bartlett-triangular)}
 
 \item{dist_fn}{(string) distance function (Haversine)}
+}
+\value{
+A symmetric n x n matrix of kernel weights with 1s on the diagonal.
 }
 \description{
 Create Distance Matrix

@@ -5,3 +5,6 @@
 \.so$
 \.dll$
 ^LICENSE\.md$
+^CLAUDE\.md$
+^\.claude$
+^vignettes/detrending\.Rmd$

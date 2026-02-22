@@ -70,13 +70,7 @@ ggplot(US_counties_centroids) + geom_sf(aes(col = resid), size = .1) + theme_bw(
 In order to restore valid inference, we can estimate a spatial autocorrelation consistent standard error. By far the most common way to do this is by using the approach by @Conley1999.
 It allows for arbitrary correlation between observations within a certain bandwidth -- just like a Newey-West standard error in time-series econometrics.
 
-To illustrate that it's not trivial to come up with an appropriate cutoff distance within which we allow observations to be correlated, we can show that there is an inverse U relationship between the size of the Conley error and the size of the cutoff radius around each observation:
 
-
-```{r, fig.width=7}
-inverseu_plot_conleyrange(US_counties_centroids, seq(1, 2501, by = 200)) + theme_bw()
-```
-where the grey dashed line represents the HC1 standard error from the regression above. The maximum spatial HAC error is about ten times higher than the HC1 error, but there is considerable scope to pick much smaller 
 
 We can now go ahead and estimate the appropriate correlation range for this regression following the approach in Lehner (2025):
 
@@ -84,20 +78,95 @@ We can now go ahead and estimate the appropriate correlation range for this regr
 covgm_range(US_counties_centroids)
 ```
 
+
+```{r}
+spuriouslm <- fixest::feols(dist ~ noise2, data = US_counties_centroids, vcov = "HC1")
+spuriouslm <- fixest::feols(dist ~ noise2 + lon + lat, data = US_counties_centroids, vcov = "HC1")
+# nonlinear?
+spuriouslm <- fixest::feols(dist ~ noise2 + poly(lon, 2) + poly(lat, 2), data = US_counties_centroids, vcov = "HC1")
+US_counties_centroids$resid <- spuriouslm$residuals
+
+covgm_range(US_counties_centroids, depvar = "resid", single.variable = TRUE)
+```
+
+```{r}
+# just predict it?
+spuriouslm <- lm(dist ~ noise2 + lon + lat, data = US_counties_centroids)
+spuriouslm <- fixest::feols(dist ~ noise2 + lon + lat, data = US_counties_centroids, vcov = "HC1")
+# Predict trend values
+US_counties_centroids$detrended <- predict(spuriouslm, newdata = US_counties_centroids)
+US_counties_centroids$detrended <- US_counties_centroids$dist - US_counties_centroids$detrended
+
+US_counties_centroids$resid <- spuriouslm$residuals
+
+covgm_range(US_counties_centroids, depvar = "resid", single.variable = TRUE)
+
+
+vario1 <- gstat::variogram(spuriouslm$residuals ~ 1, locations = as_Spatial(US_counties_centroids), width = 1e5, cross = F, covariogram = F, cressie = F) 
+
+  
+plot(vario1)
+summary(vario1)
+vario1
+```
+
+```{r}
+US_counties_centroids$resid <- spuriouslm$residuals
+
+correlog1 <- pgirmess::correlog(st_coordinates(US_counties_centroids), US_counties_centroids$resid, method = "Moran", nbclass = 50)
+plot(correlog1)
+
+
+
+fit1 <- ncf::correlog(x = st_coordinates(US_counties_centroids)[,1], y = st_coordinates(US_counties_centroids)[,2], 
+                      z = US_counties_centroids$resid, increment = 50000, 
+                      resamp = 1, quiet = TRUE)
+plot(fit1)
+plot(fit1$mean.of.class, fit1$correlation)
+summary(fit1)
+```
+
+
+
 This plot shows that, on average, after around 831km the error terms cease to be correlated with each other -- i.e., the covariogram is approaching zero at this distance. 
 
 We'll now go ahead and use this estimate of the correlation range to estimate the appropriate Conley spatial HAC error:
 
 ```{r}
-spuriouslm <- felm(noise1 ~ noise2 | unit + year | 0 | lat + lon, data = US_counties_centroids, keepCX = T)
+spuriouslm <- felm(noise1 ~ noise2| unit + year | 0 | lat + lon, data = US_counties_centroids, keepCX = T)
 regfe_conley <- conley_SE(reg = spuriouslm, unit = "unit", time = "year",
                           lat = "lat", lon = "lon",
                           kernel = "epanechnikov", dist_fn = "Haversine",
                           dist_cutoff = 831)
 
-conley <- sapply(regfe_conley, function(x) diag(sqrt(x)))[2] %>% round(5)
-conley
+conley <- sapply(regfe_conley, function(x) diag(sqrt(x))) %>% round(5)
+conley[[2]] # if I only have one regressor
+dim(conley)
+length(conley)
+
+# multiple regressors
+spuriouslm <- felm(noise1 ~ noise2 + lat + lon| unit + year | 0 | lat + lon, data = US_counties_centroids, keepCX = T)
+regfe_conley <- conley_SE(reg = spuriouslm, unit = "unit", time = "year",
+                          lat = "lat", lon = "lon",
+                          kernel = "epanechnikov", dist_fn = "Haversine",
+                          dist_cutoff = 831)
+
+conley <- sapply(regfe_conley, function(x) diag(sqrt(x))) %>% round(5)
+length(conley)
+conley[1,2]
+
+
+# implementation
+spuriouslm <- felm(noise1 ~ noise2 | unit + year | 0 | lat + lon, data = US_counties_centroids, keepCX = T)
+compute_conley_lfe(spuriouslm, cutoff = 831)
+spuriouslm <- felm(noise1 ~ noise2 + lat + lon| unit + year | 0 | lat + lon, data = US_counties_centroids, keepCX = T)
+compute_conley_lfe(spuriouslm, cutoff = 831)
 ```
+
+```{r}
+fixest::feols(noise1 ~ noise2 + lat + lon, data = US_counties_centroids)
+```
+
 
 Which is a substantially more conservative estimate of our standard error than what we had before. In a next step we can now use this standard error to construct a corrected t-statistic for the point estimate of the single regressor that was used above...
 
@@ -117,7 +186,7 @@ compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "epanechnikov")
 To estimate the full package, including a Moran's I test for spatial autocorrelation, you can use `lm_sac()`
 
 ```{r}
-lmsac.out <- lm_sac("noise1 ~ noise2 | unit + year | 0 | lat + lon", US_counties_centroids, 
+lmsac.out <- lm_sac("noise1 ~ noise2 + lat + lon | unit + year | 0 | lat + lon", US_counties_centroids, 
        conley_cutoff = 831, conley_kernel = "epanechnikov")
   
 lmsac.out$conley_SE
@@ -140,18 +209,60 @@ modelsummary(lmsac.out,
 ```
 
 
-## Kernel choices
+# LATTICE TO CHECK THE KERNELS?
 
-Note that the HAC standard error estimate is not just sensitive to the length of the cutoff bandwidth, but also to the kernel choice. The SpatialInference package includes several kernels that can be used for estimation. The uniform kernel weights all observations equally, no matter how far they are apart. All other included kernels give lower weight to units that are farther away with varying distance decays.
+Things could also be computed on a lattice - Alex (G), that's what could be used to try the kernel workings:
 
-```{r}
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "uniform")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "epanechnikov")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "bartlett")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "parzen")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "gaussian")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "biweight")
+```{r, fig.width=7}
+US_grid <- st_make_grid(US_counties_centroids, cellsize = 70000, square = T) %>% st_sf()
+US_grid <- st_centroid(US_grid)
+
+# add lonlat since the conley only works with that for now (does not recognize sf objects) 
+US_grid <- bind_cols(US_grid, sfc_as_cols(st_transform(US_grid, 4326), names = c("lon", "lat")))
+US_grid$year <- "1" # fake year FE to make conley lfe work
+US_grid$unit <- "unit" # for FE
+
+ggplot(US_grid) + geom_sf(size = .1) + theme_bw()
 ```
+
+
+# TODO - FOR LATER
+
+Here are my failed attempts to construct the bandwidth selection within an optimizer:
+
+
+```{r, eval = F}
+
+# trial for the optimizer conley function
+
+reglfe <- felm(noise1 ~ noise2 | unit + year | 0 | lat + lon, data = df.sf3, keepCX = T)
+inverseu_plot_conleyrange(df.sf3, seq(1, 1001, by = 100))
+
+
+compute_conley_lfe(reglfe, cutoff = x)
+compute_objective <- function(x, reglfe) {
+  compute_conley_lfe(reglfe, cutoff = x)  # Negate for maximization
+}
+
+result <- optimize(compute_objective, interval = c(1, 500), reglfe = reglfe, maximum = TRUE, tol = 1e-10)
+compute_conley_lfe(reglfe, cutoff = 343)
+
+compute_objective <- function(x, reglfe) {
+  compute_conley_lfe(reglfe, cutoff = x)  # Negate for maximization
+}
+
+result <- optim(par = 200, fn = compute_objective, reglfe = reglfe, method = "BFGS", 
+                lower = 10, upper = 1000,
+                control = list(abstol = 0.0000001))
+compute_objective(200, reglfe)
+
+inverseu_plot_conleyrange(df.sf3, seq(250, 380, by = 20))
+
+
+
+```
+
+
 
 
 

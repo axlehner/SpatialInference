@@ -1,23 +1,34 @@
+#' @importFrom magrittr %>%
+#' @export
+magrittr::`%>%`
 
-
-
-#' Coordinates as columns into a data frame
+#' Extract Coordinates as Columns from an sf Object
 #'
-#' This is based on the `sfc_as_cols` function which has been flying around on Stackoverflow and other websites for years.
-#' Since there is no package implementation so far, it has been brought into this package.
-#' The function `sf::st_coordinates()` achieves something very similar.
+#' Extracts point coordinates from an `sf` or `sfc` object and returns
+#' them as a tibble. This is a lightweight alternative to
+#' [sf::st_coordinates()] that returns a tibble directly.
 #'
-#' @param x
-#' @param names
+#' @param x An `sf` or `sfc` object with `sfc_POINT` geometry.
+#' @param names Character vector of length 2 specifying the column names
+#'   for the x and y coordinates. Default is `c("x", "y")`.
 #'
-#' @return
+#' @return A [tibble::tibble()] with two columns named according to the
+#'   `names` argument, containing the x and y coordinates.
+#'
+#' @references
+#' Pebesma, E. (2018). Simple features for R: Standardized support for
+#' spatial vector data. *The R Journal*, 10(1), 439--446.
+#' \doi{10.32614/RJ-2018-009}
+#'
 #' @export
 #'
 #' @examples
-#'
-#'
+#' \donttest{
+#' data(US_counties_centroids)
+#' coords <- coords_as_columns(US_counties_centroids)
+#' head(coords)
+#' }
 coords_as_columns <- function(x, names = c("x","y")) {
-  # TODO: could make the 4326 lonlat conversion and naming inside the function for convenience
   stopifnot(inherits(x,"sf") | inherits(x,"sfc") && inherits(sf::st_geometry(x),"sfc_POINT"))
   ret <- do.call(rbind,sf::st_geometry(x))
   ret <- tibble::as_tibble(ret)
@@ -25,21 +36,3 @@ coords_as_columns <- function(x, names = c("x","y")) {
   ret <- setNames(ret,names)
   ret
 }
-
-
-# NEWER VERSION ?
-# sfc_as_cols <- function(x, geometry, names = c("x","y")) {
-#   if (missing(geometry)) {
-#     geometry <- sf::st_geometry(x)
-#   } else {
-#     geometry <- rlang::eval_tidy(enquo(geometry), x)
-#   }
-#   stopifnot(inherits(x,"sf") && inherits(geometry,"sfc_POINT"))
-#   ret <- sf::st_coordinates(geometry)
-#   ret <- tibble::as_tibble(ret)
-#   stopifnot(length(names) == ncol(ret))
-#   x <- x[ , !names(x) %in% names]
-#   ret <- setNames(ret,names)
-#   dplyr::bind_cols(x,ret)
-# }
-

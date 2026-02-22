@@ -2,21 +2,24 @@
 % Please edit documentation in R/RcppExports.R
 \name{Bal_XeeXhC}
 \alias{Bal_XeeXhC}
-\title{Calculate Correlation Matrix for Balanced Panel}
+\title{Spatial Variance Component for Balanced Panel}
 \usage{
 Bal_XeeXhC(dmat, X, e, n1, k)
 }
 \arguments{
-\item{dmat}{distance matrix}
+\item{dmat}{pre-computed distance matrix (n x n)}
 
-\item{X}{model matrix}
+\item{X}{model matrix (n x k)}
 
-\item{e}{vector of residuals}
+\item{e}{vector of residuals (length n)}
 
 \item{n1}{number of observations}
 
 \item{k}{number of regressors}
 }
+\value{
+A k x k matrix representing the spatial X'ee'X component.
+}
 \description{
-Calculate Correlation Matrix for Balanced Panel
+Spatial Variance Component for Balanced Panel
 }

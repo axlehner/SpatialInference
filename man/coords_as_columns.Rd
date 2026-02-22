@@ -2,15 +2,34 @@
 % Please edit documentation in R/sfc_as_cols.R
 \name{coords_as_columns}
 \alias{coords_as_columns}
-\title{Coordinates as columns into a data frame}
+\title{Extract Coordinates as Columns from an sf Object}
 \usage{
 coords_as_columns(x, names = c("x", "y"))
 }
 \arguments{
-\item{names}{}
+\item{x}{An \code{sf} or \code{sfc} object with \code{sfc_POINT} geometry.}
+
+\item{names}{Character vector of length 2 specifying the column names
+for the x and y coordinates. Default is \code{c("x", "y")}.}
+}
+\value{
+A \code{\link[tibble:tibble]{tibble::tibble()}} with two columns named according to the
+\code{names} argument, containing the x and y coordinates.
 }
 \description{
-This is based on the \code{sfc_as_cols} function which has been flying around on Stackoverflow and other websites for years.
-Since there is no package implementation so far, it has been brought into this package.
-The function \code{sf::st_coordinates()} achieves something very similar.
+Extracts point coordinates from an \code{sf} or \code{sfc} object and returns
+them as a tibble. This is a lightweight alternative to
+\code{\link[sf:st_coordinates]{sf::st_coordinates()}} that returns a tibble directly.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+coords <- coords_as_columns(US_counties_centroids)
+head(coords)
+}
+}
+\references{
+Pebesma, E. (2018). Simple features for R: Standardized support for
+spatial vector data. \emph{The R Journal}, 10(1), 439--446.
+\doi{10.32614/RJ-2018-009}
 }

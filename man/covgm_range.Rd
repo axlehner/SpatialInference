@@ -2,7 +2,7 @@
 % Please edit documentation in R/range_helpers.R
 \name{covgm_range}
 \alias{covgm_range}
-\title{Title}
+\title{Covariogram Range Estimation and Visualization}
 \usage{
 covgm_range(
   df.input,
@@ -14,8 +14,48 @@ covgm_range(
 )
 }
 \arguments{
-\item{single.variable}{}
+\item{df.input}{An \code{sf} data frame with point geometries.}
+
+\item{depvar}{Character string naming the dependent variable. Default
+is \code{"noise1"}.}
+
+\item{indepvar}{Character string naming the independent variable (used
+when \code{single.variable = FALSE}). Default is \code{"noise2"}.}
+
+\item{maxdist}{Numeric. Maximum distance for the covariogram (in metres).
+Default is \code{NA}, which uses 2/3 of the maximum pairwise distance.}
+
+\item{spacing}{Numeric. Bin width for the covariogram (in metres). Default
+is \code{NA}, which uses \code{maxdist / 150}.}
+
+\item{single.variable}{Logical. If \code{TRUE}, computes the covariogram directly
+from \code{depvar}. If \code{FALSE} (default), first regresses \code{depvar} on
+\code{indepvar} via \code{\link[fixest:feols]{fixest::feols()}} and uses the residuals.}
+}
+\value{
+A \code{\link[ggplot2:ggplot]{ggplot2::ggplot()}} object showing the covariogram with the
+estimated correlation range marked by a vertical red line and annotated
+text.
 }
 \description{
-Title
+Estimates a covariogram from an \code{sf} data frame (either from a single
+variable or regression residuals) using \code{\link[gstat:variogram]{gstat::variogram()}} with
+\code{covariogram = TRUE}, extracts the zero-crossing as the estimated
+correlation range via \code{\link[=extract_corr_range]{extract_corr_range()}}, and produces a diagnostic
+plot.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+if (requireNamespace("fixest", quietly = TRUE) &&
+    requireNamespace("gstat", quietly = TRUE) &&
+    requireNamespace("ggplot2", quietly = TRUE)) {
+  covgm_range(US_counties_centroids)
+}
+}
+}
+\references{
+Pebesma, E. J. (2004). Multivariable geostatistics in S: the gstat
+package. \emph{Computers & Geosciences}, 30(7), 683--691.
+\doi{10.1016/j.cageo.2004.03.012}
 }

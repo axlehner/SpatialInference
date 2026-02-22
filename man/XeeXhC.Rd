@@ -2,18 +2,18 @@
 % Please edit documentation in R/RcppExports.R
 \name{XeeXhC}
 \alias{XeeXhC}
-\title{Calculate Correlation Matrix}
+\title{Spatial Variance Component (X'ee'X)}
 \usage{
 XeeXhC(M, cutoff, X, e, n1, k, kernel = "bartlett", dist_fn = "Haversine")
 }
 \arguments{
-\item{M}{matrix of locations}
+\item{M}{matrix of locations (n x 2, latitude and longitude)}
 
-\item{cutoff}{the distance for cutoff}
+\item{cutoff}{the distance cutoff (bandwidth) in km}
 
-\item{X}{model matrix}
+\item{X}{model matrix (n x k)}
 
-\item{e}{vector of residuals}
+\item{e}{vector of residuals (length n)}
 
 \item{n1}{number of observations}
 
@@ -23,6 +23,9 @@ XeeXhC(M, cutoff, X, e, n1, k, kernel = "bartlett", dist_fn = "Haversine")
 
 \item{dist_fn}{(string) distance function (Haversine)}
 }
+\value{
+A k x k matrix representing the spatial X'ee'X component.
+}
 \description{
-Calculate Correlation Matrix
+Spatial Variance Component (X'ee'X)
 }

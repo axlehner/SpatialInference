@@ -2,23 +2,26 @@
 % Please edit documentation in R/RcppExports.R
 \name{TimeDist}
 \alias{TimeDist}
-\title{Calculate Correlation Matrix (time-dim)}
+\title{Temporal Variance Component (Time Dimension)}
 \usage{
 TimeDist(times, cutoff, X, e, n1, k)
 }
 \arguments{
-\item{times}{vector containing the different times}
+\item{times}{numeric vector of time period identifiers}
 
-\item{cutoff}{the distance for cutoff}
+\item{cutoff}{the lag cutoff (number of time periods)}
 
-\item{X}{model matrix}
+\item{X}{model matrix (n x k)}
 
-\item{e}{vector of residuals}
+\item{e}{vector of residuals (length n)}
 
 \item{n1}{number of observations}
 
 \item{k}{number of regressors}
 }
+\value{
+A k x k matrix representing the temporal X'ee'X component.
+}
 \description{
-Calculate Correlation Matrix (time-dim)
+Temporal Variance Component (Time Dimension)
 }

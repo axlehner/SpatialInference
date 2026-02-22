@@ -2,16 +2,33 @@
 % Please edit documentation in R/gravity_centroid.R
 \name{gravity_centroid}
 \alias{gravity_centroid}
-\title{Center of Gravity}
+\title{Gravity Centroid (Centre of Gravity)}
 \usage{
 gravity_centroid(df.sf, weight = NA)
 }
 \arguments{
-\item{weight}{}
+\item{df.sf}{An \code{sf} data frame with polygon or point geometries.}
+
+\item{weight}{Numeric vector of weights with length equal to \code{nrow(df.sf)},
+or \code{NA} (default) for an unweighted mean centre.}
+}
+\value{
+An \code{sfc_POINT} object (CRS 4326 / WGS84) representing the
+(weighted) mean centre.
 }
 \description{
-Center of Gravity
+Computes the (optionally weighted) mean centre of an \code{sf} data frame,
+returning a single \code{sfc_POINT}. Without weights, this is the simple
+geographic centroid; with weights, it is the weighted mean centre
+(centre of gravity) as used in spatial statistics.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+gravity_centroid(US_counties_centroids)
+}
 }
 \references{
-Arlinghaus
+Arlinghaus, S. L. (1994). \emph{Practical Handbook of Spatial Statistics}.
+CRC Press.
 }

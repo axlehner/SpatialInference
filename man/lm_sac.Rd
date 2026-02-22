@@ -2,7 +2,7 @@
 % Please edit documentation in R/lm_sac.R
 \name{lm_sac}
 \alias{lm_sac}
-\title{Linear model taking into account spatial autocorrelation}
+\title{Linear Model with Spatial Autocorrelation Diagnostics}
 \usage{
 lm_sac(
   formula.chr,
@@ -10,13 +10,79 @@ lm_sac(
   knn_number = 20,
   conley_cutoff = 5,
   conley_kernel = "bartlett",
-  correlograms = F,
+  correlograms = FALSE,
   ...
 )
 }
 \arguments{
-\item{...}{}
+\item{formula.chr}{Character string specifying the regression formula in
+\code{felm} syntax (e.g., \code{"y ~ x1 + x2 | fe1 + fe2 | 0 | lat + lon"}).}
+
+\item{data.sf}{An \code{sf} data frame containing the variables referenced in
+\code{formula.chr}, with point geometries and columns \code{lat} and \code{lon}.}
+
+\item{knn_number}{Integer. Number of nearest neighbours for the spatial
+weights matrix used in Moran's I tests. Default is \code{20}.}
+
+\item{conley_cutoff}{Numeric. Spatial bandwidth (cutoff distance in km)
+for the Conley standard error. Default is \code{5}.}
+
+\item{conley_kernel}{Character string specifying the kernel function.
+Default is \code{"bartlett"}. See \code{\link[=conley_SE]{conley_SE()}} for options.}
+
+\item{correlograms}{Logical. If \code{TRUE}, estimates correlograms via
+\code{\link[ncf:correlog]{ncf::correlog()}} and uses the extracted correlation range as an
+additional flexible Conley cutoff. Default is \code{FALSE}.}
+
+\item{...}{Additional arguments passed to \code{\link[lfe:felm]{lfe::felm()}} and \code{\link[stats:lm]{stats::lm()}}.}
+}
+\value{
+An object of class \code{c("custom", "lm")} with additional components:
+\describe{
+\item{spatial_FE}{Character, the spatial fixed effect variable name.}
+\item{Moran_lmresid}{Moran's I test statistic on the OLS residuals,
+or \code{NA} if the test failed.}
+\item{Moran_response}{Moran's I test statistic on the response
+variable, or \code{NA} if the test failed.}
+\item{correlog.range_resid}{Estimated correlation range from the
+residual correlogram (km), or \code{NA} if \code{correlograms = FALSE}.}
+\item{correlog.range_response}{Estimated correlation range from the
+response correlogram (km), or \code{NA} if \code{correlograms = FALSE}.}
+\item{conley_SE}{Numeric vector of Conley spatial standard errors
+(with 0 for intercept and higher-order FE coefficients).}
+\item{conley_SE_flex}{Conley SEs using the correlogram-based cutoff,
+or \code{NA} if \code{correlograms = FALSE}.}
+}
 }
 \description{
-ouput is lm.sac/custom object that can be displayed with modelsummary
+Estimates a linear regression via \code{\link[lfe:felm]{lfe::felm()}} and augments the output
+with Moran's I tests for spatial autocorrelation, optional correlograms
+for range estimation, and Conley spatial HAC standard errors. The returned
+object has class \code{"custom"} prepended, enabling display via
+\code{\link[modelsummary:modelsummary]{modelsummary::modelsummary()}} with custom \code{tidy} and \code{glance} methods.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+if (requireNamespace("lfe", quietly = TRUE) &&
+    requireNamespace("spdep", quietly = TRUE) &&
+    requireNamespace("stringr", quietly = TRUE) &&
+    requireNamespace("dplyr", quietly = TRUE) &&
+    requireNamespace("sandwich", quietly = TRUE)) {
+  out <- lm_sac("noise1 ~ noise2 | unit + year | 0 | lat + lon",
+                 US_counties_centroids, conley_cutoff = 500)
+  out$conley_SE
+}
+}
+}
+\references{
+Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+\emph{Journal of Econometrics}, 92(1), 1--45.
+\doi{10.1016/S0304-4076(98)00084-0}
+
+Moran, P. A. P. (1950). Notes on continuous stochastic phenomena.
+\emph{Biometrika}, 37(1/2), 17--23. \doi{10.2307/2332142}
+
+Bivand, R. S., Pebesma, E. and Gomez-Rubio, V. (2013).
+\emph{Applied Spatial Data Analysis with R}. 2nd ed. Springer.
 }

@@ -2,17 +2,50 @@
 % Please edit documentation in R/extract_corr_range.R
 \name{extract_corr_range}
 \alias{extract_corr_range}
-\title{Extract Correlation Range}
+\title{Extract Correlation Range from a Correlogram or Covariogram}
 \usage{
 extract_corr_range(input, returnzeroifNA = FALSE)
 }
 \arguments{
-\item{input}{a correlogram estimated with ncf::correlog() or a covariogram estimated with gstat::variogram(..., covariogram = TRUE)}
+\item{input}{A correlogram object from \code{\link[ncf:correlog]{ncf::correlog()}} (class
+\code{"correlog"}) or a covariogram from \code{\link[gstat:variogram]{gstat::variogram()}} (class
+\code{"gstatVariogram"}). Must be a covariogram (not a variogram) when
+using gstat.}
+
+\item{returnzeroifNA}{Logical. If \code{TRUE}, returns \code{1} instead of \code{NA}
+when no zero-crossing is found. Default is \code{FALSE}.}
 }
 \value{
-an integer that represents the correlation range (in units of input, i.e. with lon lat it is km, with equal area CRS it typically is meters)
+A numeric value representing the estimated correlation range.
+For covariograms, the unit is km (distance in metres divided by 1000).
+For correlograms, the unit matches the input distance unit.
 }
 \description{
-Function will pick the point where the correlogram first crosses the x-axis (the distance), i.e. where the spatial autocorrelation gets 0 for the first time.
-This is a good approximation of the actual correlation range.
+Identifies the distance at which spatial autocorrelation first crosses
+zero, providing an estimate of the spatial correlation range. Works with
+correlograms from \code{\link[ncf:correlog]{ncf::correlog()}} and covariograms from
+\code{\link[gstat:variogram]{gstat::variogram()}} (with \code{covariogram = TRUE}).
+}
+\details{
+For correlograms, the function detects the first sign change in the
+rounded and floored correlation values. For covariograms, it finds the
+first index where gamma transitions from positive to non-positive. In
+both cases, the estimated range is the midpoint between the last positive
+and first non-positive distance bins.
+}
+\examples{
+# With a mock gstatVariogram:
+mock_vgm <- data.frame(
+  np = rep(100, 10),
+  dist = seq(50000, 500000, by = 50000),
+  gamma = c(5, 3, 2, 1, 0.5, -0.2, -0.5, -0.3, -0.1, -0.05),
+  dir.hor = 0, dir.ver = 0, id = "var1"
+)
+class(mock_vgm) <- c("gstatVariogram", "data.frame")
+extract_corr_range(mock_vgm)
+}
+\references{
+Pebesma, E. J. (2004). Multivariable geostatistics in S: the gstat
+package. \emph{Computers & Geosciences}, 30(7), 683--691.
+\doi{10.1016/j.cageo.2004.03.012}
 }

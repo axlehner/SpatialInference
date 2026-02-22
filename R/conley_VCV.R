@@ -2,41 +2,105 @@
 #' @export
 data.table::`:=`
 
-#' Conley Spatial Variance-Covariances using lfe
+#' Conley Spatial HAC Variance-Covariance Estimation
 #'
-#' This is the function containing the underlying C++ code by Darin Christensen.
-#' Regression model input has to be from lfe::felm().
+#' Computes Conley (1999) spatial HAC (Heteroskedasticity and Autocorrelation
+#' Consistent) variance-covariance matrices for regression models estimated
+#' with [lfe::felm()]. Supports cross-sectional spatial correlation,
+#' serial (temporal) correlation, and the combined spatial HAC estimator.
+#' Multiple kernel functions and distance metrics are available.
 #'
-#' @param reg
-#' @param unit
-#' @param time
-#' @param lat
-#' @param lon
-#' @param kernel
-#' @param dist_fn
-#' @param dist_cutoff
-#' @param lag_cutoff
-#' @param lat_scale
-#' @param verbose
-#' @param cores
-#' @param balanced_pnl
+#' @param reg A regression object of class `"felm"` from [lfe::felm()].
+#'   Must be estimated with `keepCX = TRUE` and with latitude/longitude
+#'   variables passed as cluster variables.
+#' @param unit Character string naming the cross-sectional unit identifier
+#'   variable in the `felm` cluster variables.
+#' @param time Character string naming the time period identifier variable
+#'   in the `felm` cluster variables.
+#' @param lat Character string naming the latitude variable in the `felm`
+#'   cluster variables.
+#' @param lon Character string naming the longitude variable in the `felm`
+#'   cluster variables.
+#' @param kernel Character string specifying the kernel function for spatial
+#'   weighting. One of `"bartlett"` (default), `"epanechnikov"`, `"gaussian"`,
+#'   `"parzen"`, `"biweight"`, or `"uniform"`.
+#' @param dist_fn Character string specifying the distance function.
+#'   `"Haversine"` (default) for great-circle distance in km, or `"SH"` for
+#'   the 111 km/degree approximation.
+#' @param dist_cutoff Numeric. The spatial bandwidth (cutoff distance in km)
+#'   beyond which observations receive zero weight. Default is `500`.
+#' @param lag_cutoff Numeric. The temporal bandwidth (number of time periods)
+#'   for serial correlation correction. Default is `5`.
+#' @param lat_scale Numeric. Scaling factor for latitude (km per degree).
+#'   Default is `111`.
+#' @param verbose Logical. If `TRUE`, prints progress messages during
+#'   computation. Default is `FALSE`.
+#' @param cores Integer. Number of CPU cores for parallel computation via
+#'   [parallel::mclapply()]. Default is `1` (no parallelism).
+#' @param balanced_pnl Logical. If `TRUE`, assumes a balanced panel and
+#'   pre-computes the distance matrix once for efficiency. Default is `FALSE`.
 #'
-#' @return
+#' @return A named list of three variance-covariance matrices, each of
+#'   dimension k x k where k is the number of regressors:
+#'   \describe{
+#'     \item{OLS}{The standard OLS variance-covariance matrix from the felm
+#'       object.}
+#'     \item{Spatial}{The spatial-only Conley VCV, correcting for
+#'       cross-sectional spatial correlation.}
+#'     \item{Spatial_HAC}{The full spatial HAC VCV, correcting for both
+#'       spatial and serial correlation.}
+#'   }
+#'
+#' @references
+#' Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+#' *Journal of Econometrics*, 92(1), 1--45.
+#' \doi{10.1016/S0304-4076(98)00084-0}
+#'
+#' Newey, W. K. and West, K. D. (1987). A simple, positive semi-definite,
+#' heteroskedasticity and autocorrelation consistent covariance matrix.
+#' *Econometrica*, 55(3), 703--708. \doi{10.2307/1913610}
+#'
+#' Christensen, D., Hartman, A. C. and Samii, C. (2021). Legibility and
+#' external investment: An institutional natural experiment in Liberia.
+#' *International Organization*, 75(4), 1087--1108.
+#' \doi{10.1017/S0020818321000187}
+#'
 #' @export
 #'
 #' @examples
+#' \donttest{
+#' data(US_counties_centroids)
+#' if (requireNamespace("lfe", quietly = TRUE)) {
+#'   reg <- lfe::felm(noise1 ~ noise2 | unit + year | 0 | lat + lon,
+#'                     data = US_counties_centroids, keepCX = TRUE)
+#'   vcvs <- conley_SE(reg, unit = "unit", time = "year",
+#'                     lat = "lat", lon = "lon",
+#'                     kernel = "bartlett", dist_cutoff = 500)
+#'   # Spatial standard errors:
+#'   sqrt(diag(vcvs$Spatial))
+#' }
+#' }
 conley_SE <- function(reg,
                       unit, time, lat, lon,
                       kernel = "bartlett", dist_fn = "Haversine",
                       dist_cutoff = 500, lag_cutoff = 5,
                       lat_scale = 111, verbose = FALSE, cores = 1, balanced_pnl = FALSE) {
 
-  require(lfe)
+  if (!requireNamespace("lfe", quietly = TRUE)) {
+    stop("Package 'lfe' is required for conley_SE(). Please install it.",
+         call. = FALSE)
+  }
 
   Fac2Num <- function(x) {as.numeric(as.character(x))}
-  if(cores > 1) {invisible(library(parallel))}
 
-  if(class(reg) == "felm") {
+  if (cores > 1) {
+    if (!requireNamespace("parallel", quietly = TRUE)) {
+      stop("Package 'parallel' is required for multi-core computation.",
+           call. = FALSE)
+    }
+  }
+
+  if (inherits(reg, "felm")) {
     Xvars <- rownames(reg$coefficients)
     dt = data.table::data.table(reg$cY, reg$cX,
                                 fe1 = Fac2Num(reg$fe[[1]]),
@@ -49,8 +113,8 @@ conley_SE <- function(reg,
     dt = dt[, e := as.numeric(reg$residuals)]
 
   } else {
-    message("Model class not recognized.")
-    break
+    stop("Model class not recognized. Please provide a 'felm' object from lfe::felm().",
+         call. = FALSE)
   }
 
   n <- nrow(dt)
@@ -91,7 +155,7 @@ conley_SE <- function(reg,
                                                         kernel = kernel,
                                                         dist_fn = dist_fn))
   } else {
-    XeeXhs <- mclapply(timeUnique, function(t) iterateObs(dt, Xvars, d, k,
+    XeeXhs <- parallel::mclapply(timeUnique, function(t) iterateObs(dt, Xvars, d, k,
                                                           sub_index = t,
                                                           type = "spatial", cutoff = dist_cutoff,
                                                           balanced_pnl = balanced_pnl,
@@ -132,7 +196,7 @@ conley_SE <- function(reg,
                                                          kernel = kernel,
                                                          dist_fn = dist_fn))
   } else {
-    XeeXhs <- mclapply(panelUnique,function(t) iterateObs(dt, Xvars, d, k,
+    XeeXhs <- parallel::mclapply(panelUnique,function(t) iterateObs(dt, Xvars, d, k,
                                                           sub_index = t,
                                                           type = "serial", cutoff = lag_cutoff,
                                                           balanced_pnl = balanced_pnl,
@@ -156,7 +220,26 @@ conley_SE <- function(reg,
 }
 
 
-#' Iterate observations
+#' Iterate over observations for spatial or serial correlation
+#'
+#' Internal helper function called by [conley_SE()] to compute the X'ee'X
+#' component for a single time period (spatial) or unit (serial).
+#'
+#' @param dt A `data.table` with the regression data.
+#' @param Xvars Character vector of regressor names.
+#' @param d Pre-computed distance matrix (used when `balanced_pnl = TRUE`).
+#' @param k Integer, number of regressors.
+#' @param sub_index The time period or unit index to subset on.
+#' @param type Character, either `"spatial"` or `"serial"`.
+#' @param cutoff Numeric, the distance or lag cutoff.
+#' @param balanced_pnl Logical, whether the panel is balanced.
+#' @param verbose Logical, whether to print progress.
+#' @param kernel Character, the kernel function name.
+#' @param dist_fn Character, the distance function name.
+#'
+#' @return A k x k numeric matrix representing the X'ee'X contribution.
+#'
+#' @keywords internal
 iterateObs <- function(dt, Xvars, d, k,
                        sub_index, type, cutoff, balanced_pnl, verbose, kernel, dist_fn) {
   if(type == "spatial" & balanced_pnl) {
@@ -206,22 +289,39 @@ iterateObs <- function(dt, Xvars, d, k,
 }
 
 
-#' Compute Conley Standard Error
+#' Compute Conley Standard Error for a Single Coefficient
 #'
-#' Convenience function which nests `conley_SE` and prints only the standard error.
-#' The same parameters can be used here.
+#' Convenience wrapper around [conley_SE()] that returns only the spatial
+#' Conley standard error for the first regressor. Useful for quick extraction
+#' of Conley SEs in scripting contexts.
 #'
-#' @param lfeobj
-#' @param cutoff
-#' @param kernel_choice
-#' @param ...
+#' @param lfeobj A regression object of class `"felm"` from [lfe::felm()].
+#'   Must be estimated with `keepCX = TRUE` and cluster variables
+#'   `lat + lon`.
+#' @param cutoff Numeric. The spatial bandwidth (cutoff distance in km).
+#' @param kernel_choice Character string specifying the kernel function.
+#'   Default is `"bartlett"`. See [conley_SE()] for available kernels.
+#' @param ... Additional arguments passed to [conley_SE()].
 #'
-#' @return
+#' @return A single numeric value: the spatial Conley standard error for the
+#'   first (or only) regressor.
+#'
+#' @references
+#' Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+#' *Journal of Econometrics*, 92(1), 1--45.
+#' \doi{10.1016/S0304-4076(98)00084-0}
+#'
 #' @export
 #'
 #' @examples
-
-
+#' \donttest{
+#' data(US_counties_centroids)
+#' if (requireNamespace("lfe", quietly = TRUE)) {
+#'   reg <- lfe::felm(noise1 ~ noise2 | unit + year | 0 | lat + lon,
+#'                     data = US_counties_centroids, keepCX = TRUE)
+#'   compute_conley_lfe(reg, cutoff = 500)
+#' }
+#' }
 compute_conley_lfe <- function(lfeobj, cutoff, kernel_choice = "bartlett", ...) {
   regfe_conley <- conley_SE(reg = lfeobj, unit = "unit", time = "year",
                             lat = "lat", lon = "lon",

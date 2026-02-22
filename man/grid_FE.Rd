@@ -2,13 +2,40 @@
 % Please edit documentation in R/grid_FE.R
 \name{grid_FE}
 \alias{grid_FE}
-\title{Title}
+\title{Create Grid-Based Fixed Effects}
 \usage{
-grid_FE(df.sf, size, distance = F)
+grid_FE(df.sf, size, distance = FALSE)
 }
 \arguments{
-\item{distance}{}
+\item{df.sf}{An \code{sf} data frame with geometries.}
+
+\item{size}{Numeric or integer vector. If \code{distance = FALSE} (default),
+specifies the number of grid cells along each axis (passed as \code{n} to
+\code{\link[sf:st_make_grid]{sf::st_make_grid()}}). If \code{distance = TRUE}, specifies the cell size
+in CRS units.}
+
+\item{distance}{Logical. If \code{FALSE} (default), \code{size} is interpreted as
+the number of cells. If \code{TRUE}, \code{size} is interpreted as cell dimensions
+in the CRS units. Default is \code{FALSE}.}
+}
+\value{
+A factor vector of length \code{nrow(df.sf)} containing the grid cell
+ID for each observation after spatial intersection.
 }
 \description{
-Title
+Overlays a regular grid on an \code{sf} data frame and returns a factor
+variable assigning each observation to a grid cell. Useful for creating
+spatial fixed effects in regression models.
+}
+\examples{
+\donttest{
+data(US_counties_centroids)
+grid_ids <- grid_FE(US_counties_centroids, size = 5)
+table(grid_ids)
+}
+}
+\references{
+Pebesma, E. (2018). Simple features for R: Standardized support for
+spatial vector data. \emph{The R Journal}, 10(1), 439--446.
+\doi{10.32614/RJ-2018-009}
 }

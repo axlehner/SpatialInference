@@ -1,160 +1,220 @@
-
-
-
-#' Linear model taking into account spatial autocorrelation
+#' Linear Model with Spatial Autocorrelation Diagnostics
 #'
-#' ouput is lm.sac/custom object that can be displayed with modelsummary
+#' Estimates a linear regression via [lfe::felm()] and augments the output
+#' with Moran's I tests for spatial autocorrelation, optional correlograms
+#' for range estimation, and Conley spatial HAC standard errors. The returned
+#' object has class `"custom"` prepended, enabling display via
+#' [modelsummary::modelsummary()] with custom `tidy` and `glance` methods.
 #'
-#' @param formula.chr
-#' @param data.sf
-#' @param knn_number
-#' @param conley_cutoff
-#' @param correlograms
-#' @param ...
+#' @param formula.chr Character string specifying the regression formula in
+#'   `felm` syntax (e.g., `"y ~ x1 + x2 | fe1 + fe2 | 0 | lat + lon"`).
+#' @param data.sf An `sf` data frame containing the variables referenced in
+#'   `formula.chr`, with point geometries and columns `lat` and `lon`.
+#' @param knn_number Integer. Number of nearest neighbours for the spatial
+#'   weights matrix used in Moran's I tests. Default is `20`.
+#' @param conley_cutoff Numeric. Spatial bandwidth (cutoff distance in km)
+#'   for the Conley standard error. Default is `5`.
+#' @param conley_kernel Character string specifying the kernel function.
+#'   Default is `"bartlett"`. See [conley_SE()] for options.
+#' @param correlograms Logical. If `TRUE`, estimates correlograms via
+#'   [ncf::correlog()] and uses the extracted correlation range as an
+#'   additional flexible Conley cutoff. Default is `FALSE`.
+#' @param ... Additional arguments passed to [lfe::felm()] and [stats::lm()].
 #'
-#' @return
+#' @return An object of class `c("custom", "lm")` with additional components:
+#'   \describe{
+#'     \item{spatial_FE}{Character, the spatial fixed effect variable name.}
+#'     \item{Moran_lmresid}{Moran's I test statistic on the OLS residuals,
+#'       or `NA` if the test failed.}
+#'     \item{Moran_response}{Moran's I test statistic on the response
+#'       variable, or `NA` if the test failed.}
+#'     \item{correlog.range_resid}{Estimated correlation range from the
+#'       residual correlogram (km), or `NA` if `correlograms = FALSE`.}
+#'     \item{correlog.range_response}{Estimated correlation range from the
+#'       response correlogram (km), or `NA` if `correlograms = FALSE`.}
+#'     \item{conley_SE}{Numeric vector of Conley spatial standard errors
+#'       (with 0 for intercept and higher-order FE coefficients).}
+#'     \item{conley_SE_flex}{Conley SEs using the correlogram-based cutoff,
+#'       or `NA` if `correlograms = FALSE`.}
+#'   }
+#'
+#' @references
+#' Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+#' *Journal of Econometrics*, 92(1), 1--45.
+#' \doi{10.1016/S0304-4076(98)00084-0}
+#'
+#' Moran, P. A. P. (1950). Notes on continuous stochastic phenomena.
+#' *Biometrika*, 37(1/2), 17--23. \doi{10.2307/2332142}
+#'
+#' Bivand, R. S., Pebesma, E. and Gomez-Rubio, V. (2013).
+#' *Applied Spatial Data Analysis with R*. 2nd ed. Springer.
+#'
 #' @export
 #'
 #' @examples
-#'
-#'
+#' \donttest{
+#' data(US_counties_centroids)
+#' if (requireNamespace("lfe", quietly = TRUE) &&
+#'     requireNamespace("spdep", quietly = TRUE) &&
+#'     requireNamespace("stringr", quietly = TRUE) &&
+#'     requireNamespace("dplyr", quietly = TRUE) &&
+#'     requireNamespace("sandwich", quietly = TRUE)) {
+#'   out <- lm_sac("noise1 ~ noise2 | unit + year | 0 | lat + lon",
+#'                  US_counties_centroids, conley_cutoff = 500)
+#'   out$conley_SE
+#' }
+#' }
 lm_sac <- function(formula.chr, data.sf, knn_number = 20,
                    conley_cutoff = 5, conley_kernel = "bartlett",
-                   correlograms = F, ...) {
-  # the goal is to spit out ONE single lm object that gets then assign also the custom class
-  # 1 first we run the formula as an felm with lat lon, this way we can keep unique id
+                   correlograms = FALSE, ...) {
 
-  # TODO
-  # - the error when the ConleySE (e.g.) are messed up is always when we have unit FE as dummy when there is no FE in realty, with seg5 noproblem (active in Aug21)
+  if (!requireNamespace("lfe", quietly = TRUE))
+    stop("Package 'lfe' is required for lm_sac().", call. = FALSE)
+  if (!requireNamespace("stringr", quietly = TRUE))
+    stop("Package 'stringr' is required for lm_sac().", call. = FALSE)
+  if (!requireNamespace("dplyr", quietly = TRUE))
+    stop("Package 'dplyr' is required for lm_sac().", call. = FALSE)
+  if (!requireNamespace("spdep", quietly = TRUE))
+    stop("Package 'spdep' is required for lm_sac().", call. = FALSE)
+  if (!requireNamespace("sandwich", quietly = TRUE))
+    stop("Package 'sandwich' is required for lm_sac().", call. = FALSE)
 
   # TRY RIGHT FROM THE START TO FIX THE SSIZE ISSUE BY SUBSETTING away THE DEP VAR NA's
-  # - this solves the issue that we usually have with the W matrices and morantests when a few obs are dropped bc of NA by the lm (the lm object still stores the full length of the df)
   dep.var <- stringr::str_split(formula.chr, "\\ ~ ")[[1]][1]
-  data.sf <- data.sf %>% dplyr::filter(!is.na(!!as.symbol(dep.var))) # as symbol and then we need to unquote with !! (syntactic sugar). NEW DPLYR: dplyr::filter(!is.na(.[[dep.var]])) also works
-  # the other issue could be that some of the Xes are missing and thus the Moran test on the residuals requires a different matrix? but the NA drop should work now in spdep (naSubset == TRUE by default)
+  data.sf <- data.sf %>% dplyr::filter(!is.na(!!as.symbol(dep.var)))
 
   # 1) run the regression in lfe
-  obj.felm <- lfe::felm(as.formula(formula.chr), data = data.sf, keepCX = T, keepModel = T, ...)
+
+  obj.felm <- lfe::felm(stats::as.formula(formula.chr), data = data.sf, keepCX = TRUE, keepModel = TRUE, ...)
   obj.felm
 
   # ... start prepping to run the regression in lm
   # split off the FE, in the non-FE case it is the "unit" one
   formula.FEs <- stringr::str_split(formula.chr, "\\| ")[[1]][2]
-  the.spatial.FE <- stringr::str_split(formula.FEs, " \\+ year")[[1]][1] # this guy we need then for the conley here and the cluster @ FE level in the post-regression
-  # TODO case needed where we have a real year is time FE!
+  the.spatial.FE <- stringr::str_split(formula.FEs, " \\+ year")[[1]][1]
 
   # now fix the formula to
-  formula.chr1 <- stringr::str_replace_all(formula.chr, "\\|", "+") # go to lm formula by replacing | with +
-  formula.chr1 <- stringr::str_split(formula.chr1, " \\+ year")[[1]][1] # finish off by only taking first part
-  # what about the error when we have factor with only 1 level (i.e. the unit and year) if they present, just split them off for the lm?
-  # for now the quickfix seems to be to just call the unit 1 (numeric) instead of "unit", this way lm just phases out the var with an NA
+  formula.chr1 <- stringr::str_replace_all(formula.chr, "\\|", "+")
+  formula.chr1 <- stringr::str_split(formula.chr1, " \\+ year")[[1]][1]
 
-  # THIS IS A MORE SUSTAINABLE FIX: ...
   if (stringr::str_detect(formula.chr1, "unit") == TRUE) {
-    formula.chr1 <- stringr::str_split(formula.chr1, " \\+ unit")[[1]][1] # CUT-OFF the unit like we did with year above
+    formula.chr1 <- stringr::str_split(formula.chr1, " \\+ unit")[[1]][1]
   }
 
   # 2) run the regression in lm
-  obj.lm <- lm(as.formula(formula.chr1), data = data.sf, ...)
-  obj.lm$spatial_FE <- the.spatial.FE # pass this just as an info to our custom lm object
+  obj.lm <- stats::lm(stats::as.formula(formula.chr1), data = data.sf, ...)
+  obj.lm$spatial_FE <- the.spatial.FE
 
   # merge them onto each other (using the lat lon from the felm as unique identifiers)
-  points.merged <- dplyr::right_join(data.sf, obj.felm$model, by = c("lat", "lon"), suffix = c("", ".y")) # still an sf.df, put .y only on one so the colnames stay original
-  #print(nrow(points.merged))
+  points.merged <- dplyr::right_join(data.sf, obj.felm$model, by = c("lat", "lon"), suffix = c("", ".y"))
 
   # WEIGHTs
-  points_knn_20 <- spdep::knn2nb(spdep::knearneigh(st_coordinates(points.merged), k = knn_number)) # true W matrix
-  #print(length(points_knn_20))
-  #print(length(obj.lm$model[,1]))
+  points_knn_20 <- spdep::knn2nb(spdep::knearneigh(sf::st_coordinates(points.merged), k = knn_number))
   obj.lm$Moran_lmresid <- try(spdep::lm.morantest(obj.lm, spdep::nb2listw(points_knn_20))$statistic)
-  # added a [1] here so i do not get the warning when everything went fine (bc then the class is [1] "matrix" "array")
-  if(class(obj.lm$Moran_lmresid)[1] == "try-error") obj.lm$Moran_lmresid <- NA # error catcher
-  obj.lm$Moran_response <- try(spdep::moran.test(obj.lm$model[,1], spdep::nb2listw(points_knn_20))$statistic) # here we use the actual response from model, even though the points.merged should be appropriately subsetted, thus equivalent
-  if(class(obj.lm$Moran_response)[1] == "try-error") obj.lm$Moran_response <- NA # error catcher
+  if (inherits(obj.lm$Moran_lmresid, "try-error")) obj.lm$Moran_lmresid <- NA
+  obj.lm$Moran_response <- try(spdep::moran.test(obj.lm$model[,1], spdep::nb2listw(points_knn_20))$statistic)
+  if (inherits(obj.lm$Moran_response, "try-error")) obj.lm$Moran_response <- NA
 
   # CORELLOGRAM
-  if (correlograms == T) {
+  if (correlograms == TRUE) {
+    if (!requireNamespace("ncf", quietly = TRUE))
+      stop("Package 'ncf' is required when correlograms = TRUE.", call. = FALSE)
     correlog.fit <- ncf::correlog(x = points.merged$lon, y = points.merged$lat,
                                   z = as.numeric(obj.lm$residuals), increment = 1,
-                                  resamp = 1, quiet = TRUE, latlon = TRUE, na.rm = T)
-    obj.lm$correlog.range_resid <- SpatialInference::extract.corr.range(correlog.fit)
+                                  resamp = 1, quiet = TRUE, latlon = TRUE, na.rm = TRUE)
+    obj.lm$correlog.range_resid <- extract_corr_range(correlog.fit)
     correlog.fit <- ncf::correlog(x = points.merged$lon, y = points.merged$lat,
                                   z = obj.lm$model[,1], increment = 1,
-                                  resamp = 1, quiet = TRUE, latlon = TRUE, na.rm = T)
-    obj.lm$correlog.range_response <- SpatialInference::extract.corr.range(correlog.fit)
+                                  resamp = 1, quiet = TRUE, latlon = TRUE, na.rm = TRUE)
+    obj.lm$correlog.range_response <- extract_corr_range(correlog.fit)
   } else {obj.lm$correlog.range_resid <- NA; obj.lm$correlog.range_response <- NA}
   # CONLEY
-  # cutoff <- obj.lm$correlog.range_resid
   cutoff <- conley_cutoff
-  conley.1 <- SpatialInference::conley_SE(reg = obj.felm,
-                                          unit = the.spatial.FE, time = "year",
-                                          kernel = conley_kernel, dist_fn = "Haversine",
-                                          lat = "lat", lon =  "lon", dist_cutoff = cutoff)
+  conley.1 <- conley_SE(reg = obj.felm,
+                        unit = the.spatial.FE, time = "year",
+                        kernel = conley_kernel, dist_fn = "Haversine",
+                        lat = "lat", lon =  "lon", dist_cutoff = cutoff)
   # here we make the stunt to get a vector of the length of n(coef), including the intercept since lm() always displays it
   obj.lm$conley_SE <- c(0, lapply(conley.1, function(x) diag(sqrt(x)))$Spatial[[1]], rep(0, length(obj.lm$coefficients)-2))
 
 
-  if (correlograms == T) {
+  if (correlograms == TRUE) {
     cutoff <- obj.lm$correlog.range_resid
-    conley.2 <- SpatialInference::conley_SE(reg = obj.felm,
-                                            unit = the.spatial.FE, time = "year",
-                                            kernel = conley_kernel, dist_fn = "Haversine",
-                                            lat = "lat", lon =  "lon", dist_cutoff = cutoff)
-    # here we make the stunt to get a vector of the length of n(coef), including the intercept since lm() always displays it
+    conley.2 <- conley_SE(reg = obj.felm,
+                          unit = the.spatial.FE, time = "year",
+                          kernel = conley_kernel, dist_fn = "Haversine",
+                          lat = "lat", lon =  "lon", dist_cutoff = cutoff)
     obj.lm$conley_SE_flex <- c(0, lapply(conley.2, function(x) diag(sqrt(x)))$Spatial[[1]], rep(0, length(obj.lm$coefficients)-2))
   } else {obj.lm$conley_SE_flex <- NA}
 
   # spit out
   class(obj.lm) <- c("custom", class(obj.lm))
-  #class(obj.lm) <- c("lmsac")#, class(obj.lm))
-  #class(obj.lm) <- c("custom")
   return(obj.lm)
 
 }
 
 
-# Tidy functions
+# Tidy functions ---------------------------------------------------------------
 
-# define tidy and glance methods
-# felm base works only on the point estimates and robust HC3, cluster fails - it spits the CIS
+#' Custom Tidy Method for lm_sac Output
+#'
+#' Extracts coefficient estimates, HC1 robust standard errors, and Conley
+#' spatial standard errors from an `lm` object augmented by [lm_sac()].
+#' Used by [modelsummary::modelsummary()] for table formatting.
+#'
+#' @param x An `lm` object (typically with class `"custom"` prepended by
+#'   [lm_sac()]).
+#' @param ... Additional arguments (currently unused).
+#'
+#' @return A `data.frame` with columns `term`, `estimate`, `std.error`
+#'   (HC1 robust), `conf.high` (Conley SE), and `conley` (Conley SE).
+#'
+#' @keywords internal
 tidy_custom.lm <- function(x, ...) {
+  if (!requireNamespace("sandwich", quietly = TRUE))
+    stop("Package 'sandwich' is required for tidy_custom.lm().", call. = FALSE)
   data.frame(
-    #term = names(coef(x)),
     term = names(x$coefficients),
-    estimate = unname(x$coefficients), # THE NAME OF THE VECTOR HERE DECIDES!!
-    # PARAMETERS REFIT NOT WORKING WITH POLY IN REG
-    #statistic = parameters::model_parameters(x, standardize = "refit")$Coefficient,
-    #statistic = rep(5, length(x$coefficients)),
+    estimate = unname(x$coefficients),
     std.error = sandwich::vcovHC(x, type = "HC1") %>% diag() %>% sqrt(),
-    #std.error = unname(sqrt(diag(x$robustvcv))),
-    #conf.low = sandwich::vcovCL(x, cluster = reformulate(x$spatial_FE)) %>% diag() %>% sqrt(),
-    #statistic = sandwich::vcovCL(x, cluster = ~SubDistrict) %>% diag() %>% sqrt(),
-    #conf.high = vcovCL(x, cluster = ~segment10) %>% diag() %>% sqrt()
     conf.high = x$conley_SE,
     conley = x$conley_SE
   )
 }
 
-# extra lines works though in the glance
+#' Custom Glance Method for lm_sac Output
+#'
+#' Extracts goodness-of-fit statistics including Moran's I statistics and
+#' correlation ranges from an `lm` object augmented by [lm_sac()].
+#' Used by [modelsummary::modelsummary()] for table formatting.
+#'
+#' @param x An `lm` object (typically with class `"custom"` prepended by
+#'   [lm_sac()]).
+#' @param ... Additional arguments (currently unused).
+#'
+#' @return A one-row `data.frame` with columns `Model`, `y_mean`, `y_SD`,
+#'   `nobs`, `Moran_y`, `Moran_resid`, `Range_resid`, and `Range_y`.
+#'
+#' @keywords internal
 glance_custom.lm <- function(x, ...) {
-  # just compute a weightsmatrix every time (bc of diff SSizes and subsets) ?
   data.frame(
-    #"Mean_SD" = stringr::str_c(round(mean(x$model[,1]), 3), " [", round(sd(x$model[,1]), 3), "]"), #na.rm should not be necessary since lm removed NAs
     "Model" = "Custom",
     "y_mean" = mean(x$model[,1]),
     "y_SD"   = sd(x$model[,1]),
     "nobs" = stats::nobs(x),
-    # here we need an if condition to use specific W_matrices based on distance subsets
-    # PRLY BETTER TO CREATE THEM ON THE FLY?!
     "Moran_y" =     x$Moran_response,
     "Moran_resid" = x$Moran_lmresid,
-    # issue when correlog is deactivated in lmsac regression? (else condition with NA way out?)
     "Range_resid" = x$correlog.range_resid,
     "Range_y" =  x$correlog.range_response
   )
 }
 
-# gof mapping for modelsummary printing
+#' Goodness-of-Fit Mapping for modelsummary
+#'
+#' A list specifying how goodness-of-fit statistics should be displayed
+#' in [modelsummary::modelsummary()] output.
+#'
+#' @keywords internal
 gm.param <- list(
   list("raw" = "nobs", "clean" = "Observations", "fmt" = 0),
   list("raw" = "Moran_y", "clean" = "Moran's I [y]", "fmt" = 3),

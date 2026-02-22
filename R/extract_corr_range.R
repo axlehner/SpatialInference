@@ -1,62 +1,65 @@
-#' @importFrom magrittr %>%
-#' @export
-magrittr::`%>%`
-
-#' Extract Correlation Range
+#' Extract Correlation Range from a Correlogram or Covariogram
 #'
-#' Function will pick the point where the correlogram first crosses the x-axis (the distance), i.e. where the spatial autocorrelation gets 0 for the first time.
-#' This is a good approximation of the actual correlation range.
+#' Identifies the distance at which spatial autocorrelation first crosses
+#' zero, providing an estimate of the spatial correlation range. Works with
+#' correlograms from [ncf::correlog()] and covariograms from
+#' [gstat::variogram()] (with `covariogram = TRUE`).
 #'
-#' @param input a correlogram estimated with ncf::correlog() or a covariogram estimated with gstat::variogram(..., covariogram = TRUE)
+#' For correlograms, the function detects the first sign change in the
+#' rounded and floored correlation values. For covariograms, it finds the
+#' first index where gamma transitions from positive to non-positive. In
+#' both cases, the estimated range is the midpoint between the last positive
+#' and first non-positive distance bins.
 #'
-#' @return an integer that represents the correlation range (in units of input, i.e. with lon lat it is km, with equal area CRS it typically is meters)
+#' @param input A correlogram object from [ncf::correlog()] (class
+#'   `"correlog"`) or a covariogram from [gstat::variogram()] (class
+#'   `"gstatVariogram"`). Must be a covariogram (not a variogram) when
+#'   using gstat.
+#' @param returnzeroifNA Logical. If `TRUE`, returns `1` instead of `NA`
+#'   when no zero-crossing is found. Default is `FALSE`.
+#'
+#' @return A numeric value representing the estimated correlation range.
+#'   For covariograms, the unit is km (distance in metres divided by 1000).
+#'   For correlograms, the unit matches the input distance unit.
+#'
+#' @references
+#' Pebesma, E. J. (2004). Multivariable geostatistics in S: the gstat
+#' package. *Computers & Geosciences*, 30(7), 683--691.
+#' \doi{10.1016/j.cageo.2004.03.012}
+#'
 #' @export
 #'
 #' @examples
-#'
-#'
+#' # With a mock gstatVariogram:
+#' mock_vgm <- data.frame(
+#'   np = rep(100, 10),
+#'   dist = seq(50000, 500000, by = 50000),
+#'   gamma = c(5, 3, 2, 1, 0.5, -0.2, -0.5, -0.3, -0.1, -0.05),
+#'   dir.hor = 0, dir.ver = 0, id = "var1"
+#' )
+#' class(mock_vgm) <- c("gstatVariogram", "data.frame")
+#' extract_corr_range(mock_vgm)
 extract_corr_range <- function(input, returnzeroifNA = FALSE) {
-  # TODO: think about projections and the input widths here
-  # later we need an optimizer that reduces the width(covgm)/increment(ncfcorrelog) and picks the first crossing with 0
-  # TODO: with very long range correlation, the gamma never gets below 0, thus the error flag goes off, thinking it was a variogram - need to be more defensive on that
-  if(inherits(input, "correlog")) input$gamma <- -1 # just add a negative gamma value to the corr to avoid a warning (it is made up bc the corr only has correlation as an attribute)
+  if(inherits(input, "correlog")) input$gamma <- -1
   stopifnot(
-    "Input has to be a correlogram (ncf) or a covariogram (gstat)." = inherits(input, c("correlog", "gstatVariogram"))#,
-    #"Did you input a variogram? Please estimate a covariogram." = !(inherits(input, "gstatVariogram") & (min(input$gamma) > 0))
+    "Input has to be a correlogram (ncf) or a covariogram (gstat)." = inherits(input, c("correlog", "gstatVariogram"))
   )
-  # if(inherits(input, "gstatVariogram") & (min(input$gamma) > 0))
-  #   stop("Did you input a variogram? Please estimate a covariogram.")
 
   if (inherits(input, "correlog")) {
     holdout <- input$correlation |> round(5) |> floor() |> diff()
-    # careful: the diff drops the first element and reduces the length by one
-    # then we select where the first jump is (and also drop the naming here, even though not needed)
-    pos <- holdout[abs(holdout) > 0][1] |> names() |> as.numeric() # instead of unname and having the first non-zero, we can pick the name
-    # then we select the according range (unname and not go for kms for now because we wanna plot it!)
-    # fit1$mean.of.class[which(holdout != 0)[1]] %>% unname #/ 1e3
-    # this correctly selects by position and not the which(first nonzero) which is on the wrong length (see above)
-    after <- input$mean.of.class[pos] |> unname() #/ 1e3
-    # now we pick the one before (just before it gets negative)
-    before <- input$mean.of.class[pos-1] |> unname() #/ 1e3
+    pos <- holdout[abs(holdout) > 0][1] |> names() |> as.numeric()
+    after <- input$mean.of.class[pos] |> unname()
+    before <- input$mean.of.class[pos-1] |> unname()
     estim_range <- (after+before)/2
   }
   if (inherits(input, "gstatVariogram")) {
-    # same logic here with the covariogram estimate
-    # CHANGE
-    # holdout <- input$gamma |> round(5) |> floor() |> diff()
-    # pos <- holdout[abs(holdout) > 0][1] |> names() |> as.numeric()
-    # before <- input$dist[which(holdout != 0)[1]] # this is the one before the crossing because the diff cut the holdout vector short by 1 element
-    # after <- input$dist[which(holdout != 0)[1]+1]
-    # estim_range <- (after+before)/2 / 1e3
-    # CHANGED BECAUSE THE floor() acts up when gamma above 1 (not possible for correlog)
     series <- input$gamma
-    crossing_index <- which(series[-length(series)] > 0 & series[-1] <= 0)[1] # Find the indices where the sign of the series changes
+    crossing_index <- which(series[-length(series)] > 0 & series[-1] <= 0)[1]
     before <- input$dist[crossing_index]
     after <- input$dist[crossing_index + 1]
     estim_range <- (after+before)/2 / 1e3
   }
 
-  # this checks for estim_range gone wrong, is.numeric on the NA output give a spurious TRUE, so that's the alternative flag:
   if(returnzeroifNA){if(is.na(estim_range > 0)){estim_range <- 1}}
   return(estim_range)
 

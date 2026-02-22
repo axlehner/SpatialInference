@@ -1,28 +1,39 @@
-
-
-
-#' Center of Gravity
+#' Gravity Centroid (Centre of Gravity)
 #'
-#' @param df.sf
-#' @param weight
+#' Computes the (optionally weighted) mean centre of an `sf` data frame,
+#' returning a single `sfc_POINT`. Without weights, this is the simple
+#' geographic centroid; with weights, it is the weighted mean centre
+#' (centre of gravity) as used in spatial statistics.
 #'
-#' @return
+#' @param df.sf An `sf` data frame with polygon or point geometries.
+#' @param weight Numeric vector of weights with length equal to `nrow(df.sf)`,
+#'   or `NA` (default) for an unweighted mean centre.
+#'
+#' @return An `sfc_POINT` object (CRS 4326 / WGS84) representing the
+#'   (weighted) mean centre.
+#'
+#' @references
+#' Arlinghaus, S. L. (1994). *Practical Handbook of Spatial Statistics*.
+#' CRC Press.
+#'
 #' @export
-#' @references Arlinghaus
 #'
 #' @examples
+#' \donttest{
+#' data(US_counties_centroids)
+#' gravity_centroid(US_counties_centroids)
+#' }
 gravity_centroid <- function(df.sf, weight = NA) {
 
-  centroids <- sfc_as_cols(sf::st_centroid(df.sf))
-  if (length(weight) == 1) { # case when we just want the average (conditional not is.na bc if the first element of the weight is NA it is messed up)
+  centroids <- coords_as_columns(sf::st_centroid(df.sf))
+  if (length(weight) == 1) {
     gravity.sf <- sf::st_sfc(sf::st_point(c(mean(centroids$x, na.rm = TRUE),
                                     mean(centroids$y, na.rm = TRUE))), crs = 4326)
     gravity.sf}
-  else { # here we do with weights according to http://resources.arcgis.com/en/help/main/10.1/index.html#/How_Mean_Center_works/005p0000001s000000/
-    gravity.sf <- sf::st_sfc(sf::st_point(c(sum(centroids$x * weight, na.rm = T) / sum(weight, na.rm = TRUE),
+  else {
+    gravity.sf <- sf::st_sfc(sf::st_point(c(sum(centroids$x * weight, na.rm = TRUE) / sum(weight, na.rm = TRUE),
                                     sum(centroids$y * weight, na.rm = TRUE) / sum(weight, na.rm = TRUE))), crs = 4326)
 
     gravity.sf
   }
 }
-
