@@ -2,36 +2,52 @@
 % Please edit documentation in R/grid_FE.R
 \name{grid_FE}
 \alias{grid_FE}
-\title{Create Grid-Based Fixed Effects}
+\title{Create Spatial Grid Fixed Effects}
 \usage{
 grid_FE(df.sf, size, distance = FALSE)
 }
 \arguments{
-\item{df.sf}{An \code{sf} data frame with geometries.}
+\item{df.sf}{An \code{sf} data frame with geometries (points or polygons).}
 
-\item{size}{Numeric or integer vector. If \code{distance = FALSE} (default),
-specifies the number of grid cells along each axis (passed as \code{n} to
-\code{\link[sf:st_make_grid]{sf::st_make_grid()}}). If \code{distance = TRUE}, specifies the cell size
-in CRS units.}
+\item{size}{Numeric. When \code{distance = FALSE} (default), an integer
+specifying the number of grid cells along each axis (e.g., \code{size = 10}
+creates a 10 x 10 grid). When \code{distance = TRUE}, a numeric value
+giving the cell side length in CRS units (e.g., metres for projected
+data). Passed to \code{\link[sf:st_make_grid]{sf::st_make_grid()}} as \code{n} or \code{cellsize}, respectively.}
 
-\item{distance}{Logical. If \code{FALSE} (default), \code{size} is interpreted as
-the number of cells. If \code{TRUE}, \code{size} is interpreted as cell dimensions
-in the CRS units. Default is \code{FALSE}.}
+\item{distance}{Logical. If \code{FALSE} (default), \code{size} is the number of
+cells per axis. If \code{TRUE}, \code{size} is the cell dimension in CRS units.}
 }
 \value{
-A factor vector of length \code{nrow(df.sf)} containing the grid cell
-ID for each observation after spatial intersection.
+A factor vector with one element per observation that survived the
+intersection (see Details), where each level is a grid cell ID.
 }
 \description{
-Overlays a regular grid on an \code{sf} data frame and returns a factor
-variable assigning each observation to a grid cell. Useful for creating
-spatial fixed effects in regression models.
+Overlays a regular rectangular grid on an \code{sf} data frame, intersects each
+observation with the grid, and returns a factor variable identifying the
+grid cell to which each observation belongs. This is useful for constructing
+spatial fixed effects in regression models: by including \code{grid_FE()} as a
+factor variable, the regression absorbs location-specific variation at the
+resolution of the chosen grid. Finer grids absorb more spatial variation
+but consume more degrees of freedom.
+}
+\details{
+The grid is constructed via \code{\link[sf:st_make_grid]{sf::st_make_grid()}} and observations are
+assigned to cells via \code{\link[sf:geos_binary_ops]{sf::st_intersection()}}. Observations that fall
+outside the grid (e.g., in coastal regions where cells do not cover the
+full bounding box) are dropped during intersection.
 }
 \examples{
 \donttest{
 data(US_counties_centroids)
+
+# Create a 5 x 5 grid of spatial fixed effects
 grid_ids <- grid_FE(US_counties_centroids, size = 5)
 table(grid_ids)
+
+# Finer grid (10 x 10)
+grid_ids_fine <- grid_FE(US_counties_centroids, size = 10)
+length(levels(grid_ids_fine))
 }
 }
 \references{

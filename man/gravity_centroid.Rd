@@ -2,30 +2,42 @@
 % Please edit documentation in R/gravity_centroid.R
 \name{gravity_centroid}
 \alias{gravity_centroid}
-\title{Gravity Centroid (Centre of Gravity)}
+\title{Weighted Mean Centre (Centre of Gravity)}
 \usage{
 gravity_centroid(df.sf, weight = NA)
 }
 \arguments{
-\item{df.sf}{An \code{sf} data frame with polygon or point geometries.}
+\item{df.sf}{An \code{sf} data frame with polygon or point geometries.
+Polygon geometries are reduced to their centroids before computation.}
 
-\item{weight}{Numeric vector of weights with length equal to \code{nrow(df.sf)},
-or \code{NA} (default) for an unweighted mean centre.}
+\item{weight}{Numeric vector of weights with length equal to \code{nrow(df.sf)}.
+If \code{NA} (the default), all observations receive equal weight and the
+result is the simple (unweighted) geographic mean centre. Weights do
+not need to sum to one; the function normalises internally.}
 }
 \value{
 An \code{sfc_POINT} object (CRS 4326 / WGS84) representing the
-(weighted) mean centre.
+(weighted) mean centre as a single point.
 }
 \description{
-Computes the (optionally weighted) mean centre of an \code{sf} data frame,
-returning a single \code{sfc_POINT}. Without weights, this is the simple
-geographic centroid; with weights, it is the weighted mean centre
-(centre of gravity) as used in spatial statistics.
+Computes the mean centre of an \code{sf} data frame, optionally weighted by
+an attribute variable. The function first extracts polygon or point
+centroids using \code{\link[sf:geos_unary]{sf::st_centroid()}}, then calculates the (weighted)
+arithmetic mean of the x and y coordinates. This is the two-dimensional
+analogue of a weighted mean and corresponds to the "centre of gravity"
+or "mean centre" in spatial statistics. A common use case is computing
+the population-weighted centroid of a set of administrative units.
 }
 \examples{
 \donttest{
 data(US_counties_centroids)
+
+# Unweighted mean centre (geographic centroid of all county centroids)
 gravity_centroid(US_counties_centroids)
+
+# Weighted mean centre (shifted toward areas with higher noise1 values)
+gravity_centroid(US_counties_centroids,
+                 weight = abs(US_counties_centroids$noise1) + 1)
 }
 }
 \references{

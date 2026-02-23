@@ -4,9 +4,9 @@
 \name{SpatialInference-package}
 \alias{SpatialInference}
 \alias{SpatialInference-package}
-\title{SpatialInference: Conley Spatial HAC Standard Errors and Correlation Range Estimation}
+\title{SpatialInference: Tools for Statistical Inference with Geo-Coded Data}
 \description{
-Fast computation of Conley (1999) \doi{10.1016/S0304-4076(98)00084-0} spatial heteroskedasticity and autocorrelation consistent (HAC) standard errors for linear regression models with geo-coded data. Performance-critical distance calculations, kernel weighting, and variance component accumulation are implemented in C++ via 'Rcpp' and 'RcppArmadillo'. Includes tools for estimating the spatial correlation range from covariograms and correlograms, and diagnostic visualizations for bandwidth selection.
+What the package does (one paragraph).
 }
 \seealso{
 Useful links:
