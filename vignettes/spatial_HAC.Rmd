@@ -1,5 +1,5 @@
 ---
-title: "Estimate bandwidths and compute Conley errors"
+title: "Bandwidth Selection and Conley Spatial HAC Standard Errors"
 author: "Alexander Lehner"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -18,10 +18,17 @@ knitr::opts_chunk$set(
 )
 ```
 
-A key feature of `SpatialInference` is comprised of a set of functions that allow to measure the spatial correlation range of a variable (or a regression residual).
-The package also includes a computationally efficient implementation to compute Conley [@Conley1999] spatial HAC standard errors which is [based on C++ code by Darin Christensen](https://github.com/darinchristensen/conley-se) [@ChristensenHartmanSamii2021].
+## Overview
 
-Load the data containing the centroids of all 3108 counties of the contiguous United States:
+The `SpatialInference` package provides tools for statistical inference with spatially correlated data. Its main features are:
+
+1. **Conley spatial HAC standard errors** — a computationally efficient implementation [based on C++ code by Darin Christensen](https://github.com/darinchristensen/conley-se) [@ChristensenHartmanSamii2021] of the estimator introduced by @Conley1999.
+2. **Covariogram-based bandwidth selection** — a data-driven method for choosing the kernel bandwidth, based on extracting the correlation range from the empirical covariogram of regression residuals.
+3. **Diagnostic visualizations** — including the inverse-U relationship between bandwidth and Conley SE magnitude, and covariogram plots with annotated range estimates.
+
+## Setup
+
+Load the package and data containing the centroids of all 3,108 counties of the contiguous United States:
 
 ```{r setup, fig.width=7}
 library(SpatialInference)
@@ -30,67 +37,92 @@ library(lfe)
 library(modelsummary)
 data("US_counties_centroids")
 
-
 ggplot(US_counties_centroids) + geom_sf(size = .1) + theme_bw()
 ```
 
+## Simulated spatially correlated data
 
-Here we have two sets of spatially simulated data which were drawn independently from each other:
+The dataset contains two independently generated spatially correlated noise variables (`noise1` and `noise2`), drawn using geostatistical simulation. Although drawn independently, both exhibit strong spatial clustering — nearby counties have similar values:
 
-
-```{r, fig.show='hold'}
-
+```{r, fig.show='hold', fig.width=7}
 ggplot(US_counties_centroids) + geom_sf(aes(col = noise1), size = .1) + theme_bw()
 ggplot(US_counties_centroids) + geom_sf(aes(col = noise2), size = .1) + theme_bw()
-
 ```
 
-
-These are spatially stationary, an example of an extreme case of spatial non-stationarity would be a distance:
+For comparison, the `dist` variable is an example of spatial non-stationarity (a spatial trend rather than spatial autocorrelation):
 
 ```{r}
 ggplot(US_counties_centroids) + geom_sf(aes(col = dist), size = .1) + theme_bw()
 ```
 
-Even though these two spatial noises were drawn independently, there is a strong significant relationship between the two:
+
+## The spurious regression problem
+
+Even though the two noise variables were drawn independently (so the true coefficient is zero), a naive regression finds a highly significant relationship:
 
 ```{r}
 spuriouslm <- fixest::feols(noise1 ~ noise2, data = US_counties_centroids, vcov = "HC1")
 spuriouslm
 ```
 
-This is because the errors $\varepsilon_i$ are not i.i.d., i.e., not independent of each other, as can be seen from a map of the regression residuals
+This is because the OLS errors $\varepsilon_i$ are not i.i.d. — nearby residuals are positively correlated, which inflates the $t$-statistic. A map of the regression residuals reveals the spatial clustering:
 
 ```{r}
 US_counties_centroids$resid <- spuriouslm$residuals
-ggplot(US_counties_centroids) + geom_sf(aes(col = resid), size = .1) + theme_bw() + scale_color_viridis_c()
+ggplot(US_counties_centroids) +
+  geom_sf(aes(col = resid), size = .1) + theme_bw() + scale_color_viridis_c()
 ```
 
 
-In order to restore valid inference, we can estimate a spatial autocorrelation consistent standard error. By far the most common way to do this is by using the approach by @Conley1999.
-It allows for arbitrary correlation between observations within a certain bandwidth -- just like a Newey-West standard error in time-series econometrics.
+## Estimating the correlation range
 
-To illustrate that it's not trivial to come up with an appropriate cutoff distance within which we allow observations to be correlated, we can show that there is an inverse U relationship between the size of the Conley error and the size of the cutoff radius around each observation:
+Before computing Conley standard errors, we need to choose a bandwidth: the distance within which residuals are allowed to be correlated. The `covgm_range()` function estimates this from the data by computing the empirical covariogram of the regression residuals and identifying the distance at which covariation first crosses zero [@Pebesma2004].
 
+```{r, fig.width=7}
+covgm_range(US_counties_centroids) + theme_bw()
+```
+
+The plot shows the empirical covariogram — each point represents the average cross-product of residual pairs within a distance bin. The red vertical line marks the estimated correlation range $\hat{\varsigma}$ (here around 831 km), and the red dashed line marks zero covariance. Beyond the estimated range, the covariogram fluctuates around zero, indicating that residual correlation has effectively ceased.
+
+This is the key input for the Conley standard error: the bandwidth should match the distance over which residuals are actually correlated.
+
+To extract just the numeric range for programmatic use:
+
+```{r}
+# Compute the covariogram manually
+covgm <- gstat::variogram(
+  spuriouslm$residuals ~ 1,
+  data = sf::as_Spatial(US_counties_centroids),
+  covariogram = TRUE,
+  width = 2e4,
+  cutoff = as.numeric(max(sf::st_distance(US_counties_centroids))) * (2/3)
+)
+estimated_range <- extract_corr_range(covgm)
+estimated_range
+```
+
+
+## The inverse-U relationship
+
+A critical insight is that the relationship between the bandwidth and the magnitude of Conley standard errors follows an *inverse-U shape*. This means that both too narrow and too wide bandwidths lead to underestimated standard errors — contradicting the conventional wisdom that wider bandwidths are always more conservative.
+
+The `inverseu_plot_conleyrange()` function visualises this:
 
 ```{r, fig.width=7}
 inverseu_plot_conleyrange(US_counties_centroids, seq(1, 2501, by = 200)) + theme_bw()
 ```
-where the grey dashed line represents the HC1 standard error from the regression above. The maximum spatial HAC error is about ten times higher than the HC1 error, but there is considerable scope to pick much smaller 
 
-We can now go ahead and estimate the appropriate correlation range for this regression following the approach in Lehner (2025):
+The grey dashed line represents the HC1 standard error. As the cutoff distance increases from zero, the Conley SE first *rises* (as positively correlated residual pairs are included), reaches a peak near the true correlation range, and then *declines* (as uncorrelated pairs dilute the estimate). At very wide bandwidths, the Conley SE can fall *below* the HC1 level — making wide-bandwidth Conley errors less conservative than heteroskedasticity-robust errors.
 
-```{r, fig.width=7}
-covgm_range(US_counties_centroids)
-```
 
-This plot shows that, on average, after around 831km the error terms cease to be correlated with each other -- i.e., the covariogram is approaching zero at this distance. 
+## Computing Conley standard errors
 
-We'll now go ahead and use this estimate of the correlation range to estimate the appropriate Conley spatial HAC error:
+With the estimated range in hand, we compute the spatial HAC standard error using `conley_SE()`:
 
 ```{r}
-spuriouslm <- felm(noise1 ~ noise2 | unit + year | 0 | lat + lon, data = US_counties_centroids, keepCX = T)
-regfe_conley <- conley_SE(reg = spuriouslm, unit = "unit", time = "year",
+spuriouslm_fe <- felm(noise1 ~ noise2 | unit + year | 0 | lat + lon,
+                       data = US_counties_centroids, keepCX = TRUE)
+regfe_conley <- conley_SE(reg = spuriouslm_fe, unit = "unit", time = "year",
                           lat = "lat", lon = "lon",
                           kernel = "epanechnikov", dist_fn = "Haversine",
                           dist_cutoff = 831)
@@ -99,29 +131,32 @@ conley <- sapply(regfe_conley, function(x) diag(sqrt(x)))[2] %>% round(5)
 conley
 ```
 
-Which is a substantially more conservative estimate of our standard error than what we had before. In a next step we can now use this standard error to construct a corrected t-statistic for the point estimate of the single regressor that was used above...
+The Conley SE at the estimated bandwidth is substantially larger than the HC1 error. Constructing a corrected $t$-statistic:
 
 ```{r}
-spuriouslm$coefficients[1] / as.numeric(conley)
+spuriouslm_fe$coefficients[1] / as.numeric(conley)
 ```
 
-... and we see that it is far below 1.96, the conventional value above which we would reject the null hypothesis of no relationship between these two variables. 
+The $t$-statistic is far below 1.96, so we correctly *fail to reject* the null hypothesis — as expected, given that the two variables are genuinely independent.
 
 
-A more convenient way to get at the Conley standard error is the built in function `compute_conley_lfe()`:
+## Convenience wrappers
+
+The `compute_conley_lfe()` function provides a shortcut:
 
 ```{r}
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "epanechnikov")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "epanechnikov")
 ```
 
-To estimate the full package, including a Moran's I test for spatial autocorrelation, you can use `lm_sac()`
+For a complete workflow — regression, Moran's I test, and Conley SEs in one call — use `lm_sac()`:
 
 ```{r}
-lmsac.out <- lm_sac("noise1 ~ noise2 | unit + year | 0 | lat + lon", US_counties_centroids, 
-       conley_cutoff = 831, conley_kernel = "epanechnikov")
-  
+lmsac.out <- lm_sac("noise1 ~ noise2 | unit + year | 0 | lat + lon",
+                     US_counties_centroids,
+                     conley_cutoff = 831, conley_kernel = "epanechnikov")
+
 lmsac.out$conley_SE
-# gof mapping for modelsummary printing
+
 gm.param <- list(
   list("raw" = "nobs", "clean" = "Observations", "fmt" = 0),
   list("raw" = "Moran_y", "clean" = "Moran's I [y]", "fmt" = 3),
@@ -130,36 +165,28 @@ gm.param <- list(
   list("raw" = "y_SD", "clean" = "Std.Dev. [y]", "fmt" = 3)
 )
 
-# print the table using some custom additions to modelsummary
 modelsummary(lmsac.out,
              estimate = c("{estimate}"),
              statistic = c("({std.error})", "([{conley}])"),
              gof_omit = "Model|Range_resid|Range_resp|Range_y",
-             gof_map = gm.param
-)
+             gof_map = gm.param)
 ```
 
 
 ## Kernel choices
 
-Note that the HAC standard error estimate is not just sensitive to the length of the cutoff bandwidth, but also to the kernel choice. The SpatialInference package includes several kernels that can be used for estimation. The uniform kernel weights all observations equally, no matter how far they are apart. All other included kernels give lower weight to units that are farther away with varying distance decays.
+The spatial HAC estimate is sensitive not only to the bandwidth but also to the kernel function. The package includes six kernels with different distance-decay profiles. The uniform kernel weights all pairs equally within the cutoff; the others downweight more distant pairs with varying decay rates:
 
 ```{r}
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "uniform")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "epanechnikov")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "bartlett")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "parzen")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "gaussian")
-compute_conley_lfe(spuriouslm, cutoff = 831, kernel_choice = "biweight")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "uniform")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "epanechnikov")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "bartlett")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "parzen")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "gaussian")
+compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "biweight")
 ```
 
+Based on Monte Carlo evidence in @NeweyWest1987 and subsequent work, the Bartlett and Epanechnikov kernels tend to deliver the best size control in practice.
 
 
-
-
-
-
-
-
-
-
+## References
