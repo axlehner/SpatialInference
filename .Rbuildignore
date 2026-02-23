@@ -7,4 +7,5 @@
 ^LICENSE\.md$
 ^CLAUDE\.md$
 ^\.claude$
+^README\.html$
 ^vignettes/detrending\.Rmd$
