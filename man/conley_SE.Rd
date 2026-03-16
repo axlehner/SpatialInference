@@ -97,16 +97,19 @@ if (requireNamespace("lfe", quietly = TRUE)) {
 }
 }
 \references{
-Conley, T. G. (1999). GMM estimation with cross sectional dependence.
-\emph{Journal of Econometrics}, 92(1), 1--45.
-\doi{10.1016/S0304-4076(98)00084-0}
-
-Newey, W. K. and West, K. D. (1987). A simple, positive semi-definite,
-heteroskedasticity and autocorrelation consistent covariance matrix.
-\emph{Econometrica}, 55(3), 703--708. \doi{10.2307/1913610}
-
 Christensen, D., Hartman, A. C. and Samii, C. (2021). Legibility and
 external investment: An institutional natural experiment in Liberia.
 \emph{International Organization}, 75(4), 1087--1108.
 \doi{10.1017/S0020818321000187}
+
+Conley, T. G. (1999). GMM estimation with cross sectional dependence.
+\emph{Journal of Econometrics}, 92(1), 1--45.
+\doi{10.1016/S0304-4076(98)00084-0}
+
+Lehner, A. (2026). Bandwidth selection for spatial HAC standard errors.
+\emph{arXiv preprint} arXiv:2603.03997. \doi{10.48550/arXiv.2603.03997}
+
+Newey, W. K. and West, K. D. (1987). A simple, positive semi-definite,
+heteroskedasticity and autocorrelation consistent covariance matrix.
+\emph{Econometrica}, 55(3), 703--708. \doi{10.2307/1913610}
 }

@@ -45,6 +45,9 @@ class(mock_vgm) <- c("gstatVariogram", "data.frame")
 extract_corr_range(mock_vgm)
 }
 \references{
+Lehner, A. (2026). Bandwidth selection for spatial HAC standard errors.
+\emph{arXiv preprint} arXiv:2603.03997. \doi{10.48550/arXiv.2603.03997}
+
 Pebesma, E. J. (2004). Multivariable geostatistics in S: the gstat
 package. \emph{Computers & Geosciences}, 30(7), 683--691.
 \doi{10.1016/j.cageo.2004.03.012}

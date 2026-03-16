@@ -23,6 +23,9 @@
 #'   dashed horizontal reference line.
 #'
 #' @references
+#' Lehner, A. (2026). Bandwidth selection for spatial HAC standard errors.
+#' *arXiv preprint* arXiv:2603.03997. \doi{10.48550/arXiv.2603.03997}
+#'
 #' Conley, T. G. (1999). GMM estimation with cross sectional dependence.
 #' *Journal of Econometrics*, 92(1), 1--45.
 #' \doi{10.1016/S0304-4076(98)00084-0}
@@ -104,6 +107,9 @@ inverseu_plot_conleyrange <- function(df.input, cutoffrange = NA, kernel_choice_
 #'   text.
 #'
 #' @references
+#' Lehner, A. (2026). Bandwidth selection for spatial HAC standard errors.
+#' *arXiv preprint* arXiv:2603.03997. \doi{10.48550/arXiv.2603.03997}
+#'
 #' Pebesma, E. J. (2004). Multivariable geostatistics in S: the gstat
 #' package. *Computers & Geosciences*, 30(7), 683--691.
 #' \doi{10.1016/j.cageo.2004.03.012}

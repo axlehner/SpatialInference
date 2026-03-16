@@ -39,6 +39,9 @@
 #'   }
 #'
 #' @references
+#' Lehner, A. (2026). Bandwidth selection for spatial HAC standard errors.
+#' *arXiv preprint* arXiv:2603.03997. \doi{10.48550/arXiv.2603.03997}
+#'
 #' Conley, T. G. (1999). GMM estimation with cross sectional dependence.
 #' *Journal of Econometrics*, 92(1), 1--45.
 #' \doi{10.1016/S0304-4076(98)00084-0}

@@ -23,8 +23,8 @@ knitr::opts_chunk$set(
 The `SpatialInference` package provides tools for statistical inference with spatially correlated data. Its main features are:
 
 1. **Conley spatial HAC standard errors** — a computationally efficient implementation [based on C++ code by Darin Christensen](https://github.com/darinchristensen/conley-se) [@ChristensenHartmanSamii2021] of the estimator introduced by @Conley1999.
-2. **Covariogram-based bandwidth selection** — a data-driven method for choosing the kernel bandwidth, based on extracting the correlation range from the empirical covariogram of regression residuals.
-3. **Diagnostic visualizations** — including the inverse-U relationship between bandwidth and Conley SE magnitude, and covariogram plots with annotated range estimates.
+2. **Covariogram-based bandwidth selection** — a data-driven method for choosing the kernel bandwidth, based on extracting the correlation range from the empirical covariogram of regression residuals, as proposed by @Lehner2026.
+3. **Diagnostic visualizations** — including the inverse-U relationship between bandwidth and Conley SE magnitude [@Lehner2026], and covariogram plots with annotated range estimates.
 
 ## Setup
 
@@ -76,7 +76,7 @@ ggplot(US_counties_centroids) +
 
 ## Estimating the correlation range
 
-Before computing Conley standard errors, we need to choose a bandwidth: the distance within which residuals are allowed to be correlated. The `covgm_range()` function estimates this from the data by computing the empirical covariogram of the regression residuals and identifying the distance at which covariation first crosses zero [@Pebesma2004].
+Before computing Conley standard errors, we need to choose a bandwidth: the distance within which residuals are allowed to be correlated. The `covgm_range()` function estimates this from the data by computing the empirical covariogram of the regression residuals and identifying the distance at which covariation first crosses zero [@Lehner2026; @Pebesma2004].
 
 ```{r, fig.width=7}
 covgm_range(US_counties_centroids) + theme_bw()
@@ -104,7 +104,7 @@ estimated_range
 
 ## The inverse-U relationship
 
-A critical insight is that the relationship between the bandwidth and the magnitude of Conley standard errors follows an *inverse-U shape*. This means that both too narrow and too wide bandwidths lead to underestimated standard errors — contradicting the conventional wisdom that wider bandwidths are always more conservative.
+A critical insight documented by @Lehner2026 is that the relationship between the bandwidth and the magnitude of Conley standard errors follows an *inverse-U shape*. This means that both too narrow and too wide bandwidths lead to underestimated standard errors — contradicting the conventional wisdom that wider bandwidths are always more conservative.
 
 The `inverseu_plot_conleyrange()` function visualises this:
 
@@ -186,7 +186,7 @@ compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "gaussian")
 compute_conley_lfe(spuriouslm_fe, cutoff = 831, kernel_choice = "biweight")
 ```
 
-Based on Monte Carlo evidence in @NeweyWest1987 and subsequent work, the Bartlett and Epanechnikov kernels tend to deliver the best size control in practice.
+Based on Monte Carlo evidence in @Lehner2026, the Bartlett and Epanechnikov kernels tend to deliver the best size control in practice.
 
 
 ## References
