@@ -1,92 +1,83 @@
-
-<!-- This brief doc/description is only for the github page. README.md is generated from README.Rmd. Please edit the latter file - rmarkdown::render('README.Rmd', output_format = 'github_document', output_file = 'README.md') -->
-<!-- SetUp process create_package("~/Documents/Synched/Uni/Work/2020/SpatialInference"), use_readme_rmd(), use_git() -->
-<!--  -->
-<!-- Get in Rcpp http://adv-r.had.co.nz/Rcpp.html#rcpp-package -->
-<!-- Get in conley https://github.com/potterzot/vcovConley -->
-
 # SpatialInference
 
 <!-- badges: start -->
+[![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/axlehner/SpatialInference)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- badges: end -->
 
-Package containes helper functions to do inference with spatial data in
-R. Most importantly, the fast C++ implementation for Conley (spatial
-HAC) standard errors by Darin Christensen and a function to estimate the
-correlation range of regression residuals.
+Fast computation of Conley (1999) spatial HAC standard errors for regression models with geo-coded data, using the C++ implementation by [Darin Christensen](https://github.com/darinchristensen/conley-se) (Christensen, Hartman, and Samii 2021). Includes a data-driven bandwidth selection method based on the covariogram range of regression residuals (Lehner 2026).
 
-## Some note on pkg development
+## Features
 
-- for this readme on Github, edit the .Rmd and then use
-  `rmarkdown::render()`
-- after you edited or included a function, just use the cmd+shift+B
-  short cut to install an rebuild the package (rinse and repeat)
-
-### Functions (actual and sheduled)
-
-<!-- * grid_identifier() [for the FE] -->
-<!-- * put lon/lat (or the current CRS coord) as columns in df [to control for "smooth position in space"] -->
-<!-- * -->
-<!-- * decluster() -->
-<!-- * -->
-<!-- * spatbag() -->
-<!-- * spat_did() [boils down to spec of the term with W] -->
-<!-- * SpatFD from Martin73 [again just figuring out the Wlagged vectors and substract the lag from the y] -->
-<!-- * -->
-<!-- * conley() -->
-<!-- * conleySANDWICHfiona? -->
-<!-- * conleyGMM? -->
-<!-- * kelly() -->
-<!-- * acreg() -->
-<!-- * sphac_strap()? -->
-<!-- * kimsun11 (not implemented anywhere acc to KP17) -->
-<!-- * Bester et al 16 fixed-b assymptot? -->
-<!-- *  -->
-<!-- * block bootstraps? (conley19,...) -->
-<!-- * -->
-<!-- * robust Morans I -->
-<!-- * -->
-<!-- * center of gravity (https://twitter.com/undertheraedar/status/1285904073825366016/photo/1) [from the quant geo textbook (arlinghaus?), using the ArcGIS formula] -->
+- **Conley spatial HAC standard errors** with six kernel functions (Bartlett, Epanechnikov, Gaussian, Parzen, Biweight, Uniform) and Haversine great-circle distances
+- **Covariogram-based bandwidth selection** — estimates the spatial correlation range from the empirical covariogram, providing a principled cutoff distance
+- **Inverse-U diagnostic plot** — visualises how the Conley SE varies with the bandwidth, revealing the inverse-U relationship documented in Lehner (2026)
+- **Performance** — distance matrix computation, kernel weighting, and variance component accumulation are implemented in C++ via Rcpp/RcppArmadillo
 
 ## Installation
 
-You can install the development version from
-[GitHub](https://github.com/) with:
+Install the development version from GitHub:
 
-``` r
-#install.packages("devtools")
-#devtools::install_github("axlehner/SpatialInference")
+```r
+# install.packages("devtools")
+devtools::install_github("axlehner/SpatialInference")
 ```
 
-## Example
+### macOS note
 
-This is a basic example which shows you how to solve a common problem:
+A Fortran compiler is required for LAPACK/BLAS. If you encounter gfortran issues, see [this thread](https://github.com/RubD/Giotto_site/issues/11).
 
-``` r
+## Quick start
+
+```r
 library(SpatialInference)
-## basic example code
+library(lfe)
+data("US_counties_centroids")
+
+# 1. Estimate the correlation range from the covariogram
+covgm_range(US_counties_centroids)
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+<img src="man/figures/covariogram_example.png" width="70%" />
 
-``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
+```r
+# 2. Compute Conley standard errors at the estimated bandwidth
+reg <- felm(noise1 ~ noise2 | unit + year | 0 | lat + lon,
+            data = US_counties_centroids, keepCX = TRUE)
+
+vcvs <- conley_SE(reg, unit = "unit", time = "year",
+                  lat = "lat", lon = "lon",
+                  kernel = "epanechnikov", dist_cutoff = 831)
+
+# Spatial standard errors:
+sqrt(diag(vcvs$Spatial))
+
+# Convenience wrapper (returns a single SE):
+compute_conley_lfe(reg, cutoff = 831, kernel_choice = "epanechnikov")
 ```
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date.
+```r
+# 3. Visualise the inverse-U relationship
+inverseu_plot_conleyrange(US_counties_centroids,
+                          cutoffrange = seq(1, 2501, by = 200))
+```
 
-# Known Errors
+## Key functions
 
-Fortran compiler on MaxOS:
-<https://github.com/RubD/Giotto_site/issues/11>
+| Function | Description |
+|---|---|
+| `conley_SE()` | Conley spatial HAC variance-covariance matrices (spatial, serial, and combined) |
+| `compute_conley_lfe()` | Convenience wrapper returning a single Conley SE |
+| `covgm_range()` | Estimate and plot the correlation range from a covariogram |
+| `extract_corr_range()` | Extract the zero-crossing range from a covariogram or correlogram |
+| `inverseu_plot_conleyrange()` | Diagnostic plot of SE vs. bandwidth (inverse-U) |
+| `lm_sac()` | All-in-one: regression + Moran's I + Conley SEs |
+| `DistMat()` | Kernel-weighted spatial distance matrix (C++) |
 
-worked without the last one: the pointer to the direction
+## References
+
+Lehner, A. (2026). Bandwidth selection for spatial HAC standard errors. *arXiv preprint* arXiv:2603.03997. [doi:10.48550/arXiv.2603.03997](https://doi.org/10.48550/arXiv.2603.03997)
+
+Conley, T. G. (1999). GMM estimation with cross sectional dependence. *Journal of Econometrics*, 92(1), 1--45. [doi:10.1016/S0304-4076(98)00084-0](https://doi.org/10.1016/S0304-4076(98)00084-0)
+
+Christensen, D., Hartman, A. C. and Samii, C. (2021). Legibility and external investment: An institutional natural experiment in Liberia. *International Organization*, 75(4), 1087--1108. [doi:10.1017/S0020818321000187](https://doi.org/10.1017/S0020818321000187)
