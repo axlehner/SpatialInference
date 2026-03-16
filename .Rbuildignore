@@ -9,3 +9,4 @@
 ^\.claude$
 ^README\.html$
 ^vignettes/detrending\.Rmd$
+^cran-comments\.md$
