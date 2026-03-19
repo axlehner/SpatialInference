@@ -10,7 +10,7 @@ Fast computation of Conley (1999) spatial HAC standard errors for regression mod
 ## Features
 
 - **Conley spatial HAC standard errors** with six kernel functions (Bartlett, Epanechnikov, Gaussian, Parzen, Biweight, Uniform) and Haversine great-circle distances
-- **Covariogram-based bandwidth selection** — estimates the spatial correlation range from the empirical covariogram, providing a principled cutoff distance
+- **Covariogram-based bandwidth selection** — estimates the spatial correlation range from the empirical covariogram, providing a principled cutoff distance as proposed by Lehner (2026)
 - **Inverse-U diagnostic plot** — visualises how the Conley SE varies with the bandwidth, revealing the inverse-U relationship documented in Lehner (2026)
 - **Performance** — distance matrix computation, kernel weighting, and variance component accumulation are implemented in C++ via Rcpp/RcppArmadillo
 
