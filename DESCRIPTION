@@ -5,7 +5,7 @@ Authors@R:
     person(given = "Alexander",
            family = "Lehner",
            role = c("aut", "cre"),
-           email = "lehner@uchicago.edu",
+           email = "alehner@worldbank.org",
            comment = c(ORCID = "0000-0001-5885-5966"))
 Description: Fast computation of Conley (1999) <doi:10.1016/S0304-4076(98)00084-0>
     spatial heteroskedasticity and autocorrelation consistent (HAC) standard
