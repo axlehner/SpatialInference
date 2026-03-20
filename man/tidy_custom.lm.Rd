@@ -4,7 +4,7 @@
 \alias{tidy_custom.lm}
 \title{Custom Tidy Method for lm_sac Output}
 \usage{
-tidy_custom.lm(x, ...)
+\method{tidy_custom}{lm}(x, ...)
 }
 \arguments{
 \item{x}{An \code{lm} object (typically with class \code{"custom"} prepended by

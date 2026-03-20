@@ -4,7 +4,7 @@
 \alias{glance_custom.lm}
 \title{Custom Glance Method for lm_sac Output}
 \usage{
-glance_custom.lm(x, ...)
+\method{glance_custom}{lm}(x, ...)
 }
 \arguments{
 \item{x}{An \code{lm} object (typically with class \code{"custom"} prepended by

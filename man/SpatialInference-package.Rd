@@ -40,7 +40,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Alexander Lehner \email{lehner@uchicago.edu} (\href{https://orcid.org/0000-0001-5885-5966}{ORCID})
+\strong{Maintainer}: Alexander Lehner \email{alehner@worldbank.org} (\href{https://orcid.org/0000-0001-5885-5966}{ORCID})
 
 }
 \keyword{internal}
