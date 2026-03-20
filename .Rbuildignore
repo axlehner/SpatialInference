@@ -10,3 +10,4 @@
 ^README\.html$
 ^vignettes/detrending\.Rmd$
 ^cran-comments\.md$
+^CRAN-SUBMISSION$
