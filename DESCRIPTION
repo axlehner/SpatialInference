@@ -17,6 +17,7 @@ Description: Fast computation of Conley (1999) <doi:10.1016/S0304-4076(98)00084-
     correlation range from covariograms and correlograms following the bandwidth
     selection method proposed in Lehner (2026) <doi:10.48550/arXiv.2603.03997>,
     and diagnostic visualizations for bandwidth selection.
+Depends: R (>= 4.1.0)
 License: GPL (>= 3)
 URL: https://github.com/axlehner/SpatialInference
 BugReports: https://github.com/axlehner/SpatialInference/issues
